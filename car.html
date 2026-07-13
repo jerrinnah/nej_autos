@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>NEJ Autos — Vehicle</title>
+  <link rel="icon" href="icon.svg" />
+  <style>
+    :root {
+      --ink: #14161a; --body: #4b5563; --muted: #9096a1; --faint: #b6bbc4;
+      --accent: #e0592b; --accent-dark: #c34a20; --accent-soft: #fdeee7;
+      --line: #e7e9ee; --panel: #f7f8fa; --green: #12925a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #fff; color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.6; -webkit-font-smoothing: antialiased;
+    }
+    img, svg { display: block; max-width: 100%; }
+    button, input { font: inherit; color: inherit; }
+    a { color: inherit; text-decoration: none; }
+    .wrap { width: min(1080px, calc(100% - 2.5rem)); margin: 0 auto; }
+
+    /* top bar */
+    .topbar { display: flex; align-items: center; gap: 1rem; padding: 1.2rem 0; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 800; }
+    .brand .mark { width: 34px; height: 34px; border-radius: 9px; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 0.8rem; }
+    .brand em { font-style: normal; color: var(--accent); }
+    .top-links { margin-left: auto; display: flex; gap: 1.4rem; font-size: 0.9rem; font-weight: 550; color: var(--body); }
+    .top-links a:hover { color: var(--accent); }
+    .back { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.88rem; padding: 1.3rem 0 0; }
+    .back:hover { color: var(--accent); }
+
+    /* layout */
+    .detail { display: grid; grid-template-columns: 1.15fr 1fr; gap: 2.6rem; padding: 1.4rem 0 4rem; align-items: start; }
+
+    /* gallery */
+    .stage { position: relative; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--panel); }
+    .viewport { overflow: hidden; }
+    .track { display: flex; transition: transform 0.45s cubic-bezier(.22,1,.36,1); }
+    .slide { flex: 0 0 100%; }
+    .studio { aspect-ratio: 4 / 3; display: grid; place-items: center; background: radial-gradient(circle at 50% 42%, #ffffff 0%, #f1f3f6 72%, #e9ecf1 100%); }
+    .studio .emoji { font-size: 7rem; filter: drop-shadow(0 18px 22px rgba(0,0,0,0.16)); }
+    .slide img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .stage .avail {
+      position: absolute; top: 0.9rem; left: 0.9rem; z-index: 2;
+      display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; font-weight: 700;
+      color: var(--green); background: #fff; padding: 0.3rem 0.7rem; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .stage .avail::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .nav {
+      position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+      width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); cursor: pointer;
+      background: rgba(255,255,255,0.95); color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+      display: grid; place-items: center; font-size: 1.1rem; transition: all 0.15s ease;
+    }
+    .nav:hover { border-color: var(--accent); color: var(--accent); }
+    .nav.prev { left: 0.8rem; } .nav.next { right: 0.8rem; }
+    .thumbs { display: flex; gap: 0.6rem; margin-top: 0.8rem; }
+    .thumb { flex: 1; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; background: var(--panel); padding: 0; transition: border-color 0.15s ease; }
+    .thumb.active { border-color: var(--accent); }
+    .thumb .mini { aspect-ratio: 4 / 3; display: grid; place-items: center; font-size: 1.8rem; background: radial-gradient(circle at 50% 40%, #fff, #eef1f4); }
+    .thumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+
+    /* info */
+    .eyebrow { color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.76rem; margin: 0 0 0.5rem; }
+    .info h1 { margin: 0; font-size: clamp(1.8rem, 1.4rem + 1.4vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+    .price { margin: 1rem 0 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
+    .price small { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); letter-spacing: 0; margin-top: 0.15rem; }
+
+    .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 1.6rem 0; }
+    .spec-cell { background: #fff; padding: 0.85rem 1rem; }
+    .spec-cell .k { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+    .spec-cell .v { font-size: 0.98rem; font-weight: 700; margin-top: 0.15rem; display: flex; align-items: center; gap: 0.4rem; }
+
+    .desc { color: var(--body); font-size: 0.96rem; margin: 0 0 1.6rem; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+    .btnx {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.95rem 1rem; border-radius: 10px; border: 1.5px solid transparent;
+      font-weight: 700; cursor: pointer; transition: all 0.15s ease; font-size: 0.95rem;
+    }
+    .btnx-primary { background: var(--accent); color: #fff; box-shadow: 0 12px 26px rgba(224,89,43,0.24); }
+    .btnx-primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .btnx-outline { background: #fff; color: var(--accent); border-color: var(--line); }
+    .btnx-outline:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .enq-form { display: grid; gap: 0.6rem; grid-column: 1 / -1; }
+    .enq-form input { width: 100%; padding: 0.9rem 1rem; border: 1.5px solid var(--line); border-radius: 10px; background: #fff; outline: none; }
+    .enq-form input:focus { border-color: var(--accent); }
+    .enq-form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .trust { display: flex; align-items: center; gap: 0.6rem; margin: 1.4rem 0 0; padding-top: 1.3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.88rem; }
+    .trust .av { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 0.72rem; }
+    .success { grid-column: 1 / -1; text-align: center; padding: 1.4rem; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+    .success .big { font-size: 2.4rem; }
+
+    @media (max-width: 880px) {
+      .detail { grid-template-columns: 1fr; gap: 1.6rem; }
+      .top-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="brand" href="index.html"><span class="mark">NEJ</span> nej<em>autos</em></a>
+      <nav class="top-links">
+        <a href="index.html">Fleet</a>
+        <a href="index.html#share">Share &amp; earn</a>
+        <a href="portal.html">Partner login</a>
+      </nav>
+    </div>
+    <a class="back" href="index.html">← Back to fleet</a>
+    <div id="app"></div>
+  </div>
+  <script src="car.js"></script>
+</body>
+</html>

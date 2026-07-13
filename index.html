@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b3d38" />
+  <title>NEJ Autos — Premium cars &amp; the partner network that sells them</title>
+  <meta name="description" content="NEJ Autos: certified, inspected vehicles and a partner network that earns real commissions for selling and sharing them." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="icon.svg" />
+</head>
+<body>
+
+  <!-- ============================= HERO ============================= -->
+  <header class="hero">
+    <div class="hero-scene" aria-hidden="true">
+      <svg viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0c4a43"/><stop offset="1" stop-color="#0a352f"/>
+          </linearGradient>
+          <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#415f38"/><stop offset="1" stop-color="#2b4526"/>
+          </linearGradient>
+        </defs>
+        <rect width="1440" height="720" fill="url(#ocean)"/>
+        <!-- waves -->
+        <g stroke="#ffffff" stroke-opacity="0.05" fill="none" stroke-width="2">
+          <path d="M-20 120 C 180 90, 320 150, 520 120"/>
+          <path d="M-20 220 C 200 190, 340 250, 560 210"/>
+          <path d="M-20 330 C 180 300, 300 360, 520 330"/>
+          <path d="M-20 450 C 160 420, 300 480, 500 450"/>
+          <path d="M-20 560 C 180 530, 320 590, 520 560"/>
+        </g>
+        <!-- coastline / land on the right -->
+        <path d="M1440 0 L1440 720 L640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0 Z" fill="url(#land)"/>
+        <!-- sandy shore edge -->
+        <path d="M640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0"
+              fill="none" stroke="#cbb487" stroke-opacity="0.5" stroke-width="10"/>
+        <!-- road ribbon -->
+        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
+              fill="none" stroke="#3c3c3f" stroke-width="46" stroke-linecap="round"/>
+        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
+              fill="none" stroke="#e9e2cf" stroke-opacity="0.65" stroke-width="3" stroke-dasharray="14 18"/>
+        <!-- car -->
+        <g transform="translate(999 322) rotate(38)">
+          <rect x="-11" y="-20" width="22" height="40" rx="6" fill="#d8452a"/>
+          <rect x="-8" y="-12" width="16" height="12" rx="3" fill="#f4b8a8" fill-opacity="0.8"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="container">
+      <div class="site-header">
+        <a class="brand" href="#top">
+          <span class="mark">NEJ</span> <span>nej<em>autos</em></span>
+        </a>
+        <nav class="header-nav">
+          <div class="links">
+            <a href="#fleet">Fleet</a>
+            <a href="#share">Share &amp; Earn</a>
+            <a href="#tiers">Tiers</a>
+            <a href="#portal">Portal</a>
+          </div>
+          <div class="icons">
+            <a href="#fleet" aria-label="Search">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            </a>
+            <a href="portal.html" aria-label="Account">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            </a>
+            <a class="login-pill" href="portal.html">Partner Login</a>
+          </div>
+        </nav>
+      </div>
+
+      <div class="hero-inner">
+        <h1>The car is<br>waiting for you</h1>
+        <p class="lead">Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.</p>
+        <a class="more" href="#fleet">More information <span class="arrow">→</span></a>
+
+        <div class="hero-tabs">
+          <button class="hero-tab active" data-tab>Buy a car</button>
+          <button class="hero-tab" data-tab>Finance &amp; warranty</button>
+          <button class="hero-tab" data-tab>Become a partner</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================== BOOKING BAR ========================= -->
+  <div class="container">
+    <form class="booking" onsubmit="findCar(event)">
+      <div class="book-field">
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+        <div style="flex:1"><label>Location</label><input type="text" placeholder="Your city or region" /></div>
+      </div>
+      <div class="book-field">
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg></span>
+        <div style="flex:1"><label>Car type</label>
+          <select><option>Any type</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option></select></div>
+      </div>
+      <div class="book-field">
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+        <div style="flex:1"><label>Budget</label>
+          <select><option>Any budget</option><option>Under ₦25M</option><option>₦25M – ₦40M</option><option>₦40M – ₦60M</option><option>₦60M+</option></select></div>
+      </div>
+      <button class="btn btn-primary" type="submit">Find a car
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <!-- ============================= FLEET ============================ -->
+  <section class="section" id="fleet">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Handpicked inventory</span>
+        <h2>Our <b>Fleet</b></h2>
+        <p>Every vehicle is title-checked, inspected and reconditioned by NEJ Autos — ready for your customers.</p>
+      </div>
+      <div class="fleet-grid">
+
+        <!-- Car 1 -->
+        <article class="car-card">
+          <div class="car-media"><span class="tag">EV</span>⚡</div>
+          <div class="car-body">
+            <h3>Tesla Model 3</h3>
+            <p class="car-cat">Long Range · Sedan</p>
+            <div class="specs">
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>Electric</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 4v3m0 10v3M4 12h3m10 0h3"/></svg>Automatic</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-3"/></svg>8,200 KM</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>2WD</span>
+            </div>
+            <div class="car-foot">
+              <span class="stars">★★★★<span class="off">★</span></span>
+              <span class="price">₦41,990,000</span>
+            </div>
+            <div class="car-actions">
+              <a class="btn btn-outline" href="car.html?mk=Tesla&mo=Model%203%20Long%20Range&yr=2024&pr=41990000&em=%E2%9A%A1&bd=Sedan&mi=8200&bn=1&ev=1&bg=5&by=NEJ%20Autos&ref=NEJ-DIRECT">View details <span class="arrow">→</span></a>
+              <button type="button" class="share-ico" aria-label="Share" onclick="shareCar('Tesla Model 3 Long Range','car.html?mk=Tesla&mo=Model%203%20Long%20Range&yr=2024&pr=41990000&em=%E2%9A%A1&bd=Sedan&mi=8200&bn=1&ev=1&bg=5&by=NEJ%20Autos&ref=NEJ-DIRECT')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg> Share &amp; earn
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Car 2 (featured) -->
+        <article class="car-card featured">
+          <div class="car-media"><span class="tag">Premium</span>🚘</div>
+          <div class="car-body">
+            <h3>Mercedes-Benz C 300</h3>
+            <p class="car-cat">Premium · Limousine</p>
+            <div class="specs">
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="9" height="18" rx="1"/><path d="M12 8h3a2 2 0 0 1 2 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2v-9l-3-3"/></svg>Petrol</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 4v3m0 10v3M4 12h3m10 0h3"/></svg>Automatic</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-3"/></svg>9,800 KM</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>RWD</span>
+            </div>
+            <div class="car-foot">
+              <span class="stars">★★★★★</span>
+              <span class="price">₦46,900,000</span>
+            </div>
+            <div class="car-actions">
+              <a class="btn btn-primary" href="car.html?mk=Mercedes-Benz&mo=C%20300&yr=2023&pr=46900000&em=%F0%9F%9A%98&bd=Premium&mi=9800&bn=1&ev=0&bg=4&by=NEJ%20Autos&ref=NEJ-DIRECT">View details <span class="arrow">→</span></a>
+              <button type="button" class="share-ico" aria-label="Share" onclick="shareCar('Mercedes-Benz C 300','car.html?mk=Mercedes-Benz&mo=C%20300&yr=2023&pr=46900000&em=%F0%9F%9A%98&bd=Premium&mi=9800&bn=1&ev=0&bg=4&by=NEJ%20Autos&ref=NEJ-DIRECT')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg> Share &amp; earn
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Car 3 -->
+        <article class="car-card">
+          <div class="car-media"><span class="tag">Bonus</span>🛻</div>
+          <div class="car-body">
+            <h3>Ford F-150 Lariat</h3>
+            <p class="car-cat">Truck · 4×4</p>
+            <div class="specs">
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="9" height="18" rx="1"/><path d="M12 8h3a2 2 0 0 1 2 2v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2v-9l-3-3"/></svg>Petrol</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 4v3m0 10v3M4 12h3m10 0h3"/></svg>Automatic</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16a8 8 0 1 1 16 0"/><path d="M12 16l4-3"/></svg>15,100 KM</span>
+              <span class="spec"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>4WD</span>
+            </div>
+            <div class="car-foot">
+              <span class="stars">★★★★<span class="off">★</span></span>
+              <span class="price">₦52,300,000</span>
+            </div>
+            <div class="car-actions">
+              <a class="btn btn-outline" href="car.html?mk=Ford&mo=F-150%20Lariat&yr=2023&pr=52300000&em=%F0%9F%9B%BB&bd=Truck&mi=15100&bn=1&ev=0&bg=4&by=NEJ%20Autos&ref=NEJ-DIRECT">View details <span class="arrow">→</span></a>
+              <button type="button" class="share-ico" aria-label="Share" onclick="shareCar('Ford F-150 Lariat','car.html?mk=Ford&mo=F-150%20Lariat&yr=2023&pr=52300000&em=%F0%9F%9B%BB&bd=Truck&mi=15100&bn=1&ev=0&bg=4&by=NEJ%20Autos&ref=NEJ-DIRECT')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg> Share &amp; earn
+              </button>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= SHARE & EARN ========================= -->
+  <section class="section tint" id="share">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Share &amp; Earn</span>
+        <h2>Post a car. Get paid <b>when it sells.</b></h2>
+        <p>Share any NEJ Autos listing to WhatsApp, Facebook or X. Every share is tracked to you — and buyers who come through your link earn you more.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div class="step-ico">📤</div>
+          <h3>Share any car</h3>
+          <p>One tap sends a trackable listing to <b>WhatsApp, Facebook, X or Telegram</b>. Every share is counted to your account.</p>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div class="step-ico">👤</div>
+          <h3>A buyer taps your link</h3>
+          <p>They land on the car's page and enquire — automatically <b>credited to you</b> as the source of the sale.</p>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div class="step-ico">💸</div>
+          <h3>You get paid</h3>
+          <p>Earn <b>₦2,500 per share</b> plus your full commission <b>+2%</b> if the buyer buys through your link. The month's top sharer wins <b>₦300,000</b>.</p>
+        </div>
+      </div>
+      <div class="earn-band">
+        <div class="earn-chip"><div class="v">₦2,500</div><div class="k">Per counted share (max 2/day)</div></div>
+        <div class="earn-chip"><div class="v">₦300,000</div><div class="k">Monthly top-sharer prize</div></div>
+        <div class="earn-chip"><div class="v">₦100,000</div><div class="k">Per referred partner who sells</div></div>
+        <div class="earn-chip"><div class="v">₦250,000</div><div class="k">Bonus per EV / premium sold</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================= TIERS ============================ -->
+  <section class="section" id="tiers">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Grow your rate</span>
+        <h2>Partner <b>Tiers</b></h2>
+        <p>The more you sell each month, the higher your commission on every single car — automatically.</p>
+      </div>
+      <div class="tiers-grid">
+        <div class="tier2">
+          <div class="tier-top t-bronze"><div class="tier-medal">🥉</div><div class="tier-name">Bronze</div><div class="tier-units">0–4 cars / month</div></div>
+          <div class="tier-rate"><span class="big">3%</span> <span class="lbl">base commission</span></div>
+          <ul><li>Digital partner dashboard</li><li>Full inventory access</li><li>Share &amp; earn tools</li></ul>
+        </div>
+        <div class="tier2">
+          <div class="tier-top t-silver"><div class="tier-medal">🥈</div><div class="tier-name">Silver</div><div class="tier-units">5–12 cars / month</div></div>
+          <div class="tier-rate"><span class="big">5%</span> <span class="lbl">commission</span></div>
+          <ul><li>Faster payouts</li><li>Marketing support</li><li>Dedicated account manager</li></ul>
+        </div>
+        <div class="tier2 featured">
+          <div class="tier-top t-gold"><div class="tier-medal">🥇</div><div class="tier-name">Gold</div><div class="tier-units">13–25 cars / month</div></div>
+          <div class="tier-rate"><span class="big">6%</span> <span class="lbl">commission</span></div>
+          <ul><li>Co-branded leads</li><li>Inventory previews</li><li>Priority payouts</li></ul>
+        </div>
+        <div class="tier2">
+          <div class="tier-top t-plat"><div class="tier-medal">💎</div><div class="tier-name">Platinum</div><div class="tier-units">26+ cars / month</div></div>
+          <div class="tier-rate"><span class="big">7%</span> <span class="lbl">top commission</span></div>
+          <ul><li>Invitation-only inventory</li><li>Quarterly bonuses</li><li>Incentive trips</li></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= PORTAL MODULES ======================= -->
+  <section class="section tint" id="portal">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Everything in one place</span>
+        <h2>Your <b>Partner Portal</b></h2>
+        <p>A full web &amp; mobile dashboard — track sales, share cars, manage leads and watch your commission grow in real time.</p>
+      </div>
+      <div class="modules-grid">
+        <div class="module"><div class="m-ico">📊</div><h3>Live Dashboard</h3><p>Units sold, commission this month, pending payouts, and your tier progress — updated as you close.</p></div>
+        <div class="module"><div class="m-ico">🚗</div><h3>Inventory Catalog</h3><p>Search certified, inspected cars with pricing, EV &amp; bonus badges, and your estimated earning on each.</p></div>
+        <div class="module"><div class="m-ico">📤</div><h3>Share &amp; Earn</h3><p>Share cars to social, see every share tracked to you, and view buyers who came through your links.</p></div>
+        <div class="module"><div class="m-ico">📇</div><h3>Leads Pipeline</h3><p>Submit and track every lead from New to Won, with live pipeline value and conversion stats.</p></div>
+        <div class="module"><div class="m-ico">💰</div><h3>Commissions &amp; Payouts</h3><p>A transparent breakdown of every dollar — base, bonuses, and guaranteed payout within 5 business days.</p></div>
+        <div class="module"><div class="m-ico">🏆</div><h3>Leaderboard &amp; Rewards</h3><p>Monthly competitions, top-sharer prizes, referral tracking, and loyalty rewards for holding your tier.</p></div>
+      </div>
+      <div style="text-align:center;margin-top:2.6rem">
+        <a class="btn btn-primary" href="portal.html">Open the Partner Portal <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= TESTIMONIALS ========================= -->
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="kicker">Trusted by partners</span>
+        <h2>What <b>They Say</b> About Us</h2>
+      </div>
+      <div class="quote-grid">
+        <div class="quote-card">
+          <div class="stars">★★★★★</div>
+          <p>“I share NEJ listings to my WhatsApp groups and get paid when they sell. Fastest payouts I've had from any wholesaler.”</p>
+          <div class="quote-person"><span class="quote-avatar">AT</span><div><strong>Ava Thompson</strong><span>Summit Auto Group</span></div></div>
+        </div>
+        <div class="quote-card">
+          <div class="stars">★★★★★</div>
+          <p>“No sourcing, no reconditioning headaches. I just pick quality cars, close the deal, and NEJ handles the rest.”</p>
+          <div class="quote-person"><span class="quote-avatar">MR</span><div><strong>Marcus Reid</strong><span>Reid Motors</span></div></div>
+        </div>
+        <div class="quote-card">
+          <div class="stars">★★★★<span class="off">★</span></div>
+          <p>“The tier system is real money. I hit Gold in two months and my commission on every car went up.”</p>
+          <div class="quote-person"><span class="quote-avatar">LO</span><div><strong>Lena Ortiz</strong><span>Coastline Cars</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= PARTNER CTA ========================== -->
+  <section class="section tint" id="partners">
+    <div class="container">
+      <div class="cta-band">
+        <div>
+          <span class="kicker">NEJ Autos Partner Network</span>
+          <h2>Earn up to 7% selling cars you never had to source.</h2>
+          <p>Join the network, share inventory, and get paid on every sale — plus bonuses for top sellers, referrals, and the most-shared cars each month.</p>
+          <a class="btn btn-primary" href="portal.html">Open the Partner Portal <span class="arrow">→</span></a>
+          <div class="cta-stats">
+            <div><div class="n">7%</div><div class="l">Top commission</div></div>
+            <div><div class="n">5 days</div><div class="l">To payout</div></div>
+            <div><div class="n">250+</div><div class="l">Partners</div></div>
+          </div>
+        </div>
+        <div class="apply-card" id="apply">
+          <h3>Apply to join</h3>
+          <p>A partner specialist replies within 24 hours.</p>
+          <form class="apply-form" action="mailto:partners@nejautos.com" method="post" enctype="text/plain">
+            <input type="text" name="Name" placeholder="Full name" required />
+            <input type="text" name="Company" placeholder="Dealership or agency" required />
+            <input type="email" name="Email" placeholder="you@example.com" required />
+            <textarea name="Notes" placeholder="How many cars do you move per month?"></textarea>
+            <button class="btn btn-primary" type="submit">Submit application</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ FOOTER ============================ -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div>
+          <div class="brand"><span class="mark">NEJ</span> <span>nej<em>autos</em></span></div>
+          <p>Certified vehicles and a partner network built for fast, reliable payouts and real growth.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Explore</h4>
+          <a href="#fleet">Our fleet</a><a href="#share">Share &amp; earn</a><a href="#tiers">Partner tiers</a><a href="#portal">The portal</a>
+        </div>
+        <div class="footer-col">
+          <h4>Partners</h4>
+          <a href="portal.html">Partner login</a><a href="#apply">Apply to join</a><a href="portal.html#share">Share &amp; earn</a>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <a href="mailto:partners@nejautos.com">partners@nejautos.com</a><a href="tel:+10000000000">+1 (000) 000-0000</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>NEJ Autos &copy; 2026. All rights reserved.</span>
+        <span>Designed for dealers, brokers &amp; independent agents.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Hero tab toggle (visual)
+    document.querySelectorAll('[data-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+      });
+    });
+
+    // Booking search -> scroll to fleet
+    function findCar(e) {
+      e.preventDefault();
+      document.getElementById('fleet').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Custom share menu — only social platforms + copy link (no OS share sheet)
+    var SOCIALS = [
+      { key: 'whatsapp', label: 'WhatsApp', em: '💬' },
+      { key: 'facebook', label: 'Facebook', em: '👍' },
+      { key: 'x',        label: 'X',        em: '𝕏' },
+      { key: 'telegram', label: 'Telegram', em: '✈️' }
+    ];
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function shareIntent(key, url, text) {
+      var u = encodeURIComponent(url), t = encodeURIComponent(text);
+      if (key === 'whatsapp') return 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url);
+      if (key === 'facebook') return 'https://www.facebook.com/sharer/sharer.php?u=' + u + '&quote=' + t;
+      if (key === 'x')        return 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u;
+      if (key === 'telegram') return 'https://t.me/share/url?url=' + u + '&text=' + t;
+      return null;
+    }
+
+    // Inline styles so the menu renders correctly even if styles.css is cached/stale
+    function shareCar(title, path) {
+      var url = new URL(path, location.href).toString();
+      var text = '🚗 ' + title + ' — certified & inspected by NEJ Autos. Take a look:';
+
+      var host = document.createElement('div');
+      host.style.cssText = 'position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:1.2rem;background:rgba(20,24,33,.55);backdrop-filter:blur(5px);';
+
+      var menu = document.createElement('div');
+      menu.style.cssText = 'width:min(380px,100%);background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden;font-family:inherit;color:#16181d;';
+
+      // header
+      var head = document.createElement('div');
+      head.style.cssText = 'display:flex;align-items:center;gap:.8rem;padding:1.1rem 1.2rem;border-bottom:1px solid #e6e8eb;';
+      head.innerHTML =
+        '<span style="width:40px;height:40px;border-radius:10px;background:#fbe9e1;color:#e0592b;display:grid;place-items:center;font-size:1.2rem;flex:0 0 auto;">🔗</span>' +
+        '<div style="flex:1;min-width:0;"><strong style="display:block;font-size:.98rem;">Share &amp; earn</strong>' +
+        '<span style="color:#8b909b;font-size:.8rem;">' + escapeHtml(title) + '</span></div>';
+      var xBtn = document.createElement('button');
+      xBtn.textContent = '✕';
+      xBtn.style.cssText = 'background:#f3f4f5;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;color:#8b909b;font-size:1rem;flex:0 0 auto;';
+      xBtn.addEventListener('click', function () { host.remove(); });
+      head.appendChild(xBtn);
+
+      // social options
+      var opts = document.createElement('div');
+      opts.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;padding:1.2rem;';
+      SOCIALS.forEach(function (s) {
+        var b = document.createElement('button');
+        b.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.85rem .3rem;border:1px solid #e6e8eb;border-radius:10px;background:#fff;cursor:pointer;font-size:.72rem;font-weight:600;color:#4a4f5a;';
+        b.innerHTML = '<span style="font-size:1.55rem;line-height:1;">' + s.em + '</span>' + s.label;
+        b.addEventListener('mouseenter', function () { b.style.borderColor = '#e0592b'; });
+        b.addEventListener('mouseleave', function () { b.style.borderColor = '#e6e8eb'; });
+        b.addEventListener('click', function () {
+          var intent = shareIntent(s.key, url, text);
+          if (intent) window.open(intent, '_blank', 'noopener,noreferrer');
+          host.remove();
+        });
+        opts.appendChild(b);
+      });
+
+      // copy-link row
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;gap:.5rem;padding:0 1.2rem 1.2rem;';
+      var input = document.createElement('input');
+      input.readOnly = true; input.value = url;
+      input.style.cssText = 'flex:1;min-width:0;padding:.7rem .8rem;border:1px solid #e6e8eb;border-radius:8px;background:#f3f4f5;color:#8b909b;font-size:.78rem;font-family:ui-monospace,Menlo,monospace;';
+      var copyBtn = document.createElement('button');
+      copyBtn.textContent = 'Copy';
+      copyBtn.style.cssText = 'padding:.55rem 1rem;border:1.5px solid #e0592b;border-radius:6px;background:#fff;color:#e0592b;font-weight:650;cursor:pointer;';
+      copyBtn.addEventListener('click', function () {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(url).then(
+            function () { copyBtn.textContent = 'Copied!'; setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1500); },
+            function () { prompt('Copy this link:', url); }
+          );
+        } else { prompt('Copy this link:', url); }
+      });
+      row.appendChild(input); row.appendChild(copyBtn);
+
+      menu.appendChild(head); menu.appendChild(opts); menu.appendChild(row);
+      host.appendChild(menu);
+      host.addEventListener('click', function (e) { if (e.target === host) host.remove(); });
+      document.body.appendChild(host);
+    }
+  </script>
+</body>
+</html>
