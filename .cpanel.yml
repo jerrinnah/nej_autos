@@ -1,0 +1,18 @@
+---
+deployment:
+  tasks:
+    # ⬇️  EDIT THIS ONE LINE: replace CPANEL_USER with your cPanel username.
+    # For the primary domain the target is public_html. For an addon/subdomain,
+    # use e.g. /home/CPANEL_USER/nejautos.com/  instead of public_html.
+    - export DEPLOYPATH=/home/CPANEL_USER/public_html/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp index.html            $DEPLOYPATH
+    - /bin/cp styles.css            $DEPLOYPATH
+    - /bin/cp portal.html           $DEPLOYPATH
+    - /bin/cp portal.css            $DEPLOYPATH
+    - /bin/cp portal.js             $DEPLOYPATH
+    - /bin/cp car.html              $DEPLOYPATH
+    - /bin/cp car.js                $DEPLOYPATH
+    - /bin/cp manifest.webmanifest  $DEPLOYPATH
+    - /bin/cp sw.js                 $DEPLOYPATH
+    - /bin/cp icon.svg              $DEPLOYPATH
