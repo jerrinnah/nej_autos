@@ -32,13 +32,16 @@ admin/
 ## Setup (once, on your cPanel host)
 
 ### 1. Create the database
-cPanel → **MySQL® Databases**:
-1. Create a database, e.g. `nejautos` (cPanel stores it as `youruser_nejautos`).
-2. Create a database user + password.
-3. **Add the user to the database** with **ALL PRIVILEGES**.
+cPanel → **Databases** section. Depending on your cPanel theme the MySQL tool is
+labelled **"MySQL® Databases"**, **"Manage My Databases"**, or **"Database Wizard"**
+(all the same thing — *not* the PostgreSQL ones). The **Database Wizard** is easiest:
+
+1. **Step 1:** name the database, e.g. `nejautos` (cPanel stores it as `youruser_nejautos`).
+2. **Step 2:** create a database user + strong password.
+3. **Step 3:** grant the user **ALL PRIVILEGES**, then finish.
 
 Note the final names — they're prefixed with your cPanel username, e.g.
-`cpuser_nejautos` (db) and `cpuser_admin` (user).
+`cpuser_nejautos` (db) and `cpuser_admin` (user). Copy all three: db name, user, password.
 
 ### 2. Configure
 In the `admin/` folder (via cPanel File Manager or SSH):
