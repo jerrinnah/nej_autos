@@ -1,10 +1,10 @@
 ---
 deployment:
   tasks:
-    # ⬇️  EDIT THIS ONE LINE: replace CPANEL_USER with your cPanel username.
-    # For the primary domain the target is public_html. For an addon/subdomain,
-    # use e.g. /home/CPANEL_USER/nejautos.com/  instead of public_html.
-    - export DEPLOYPATH=/home/CPANEL_USER/public_html/
+    # $HOME is set to /home/<your-cpanel-user> automatically when cPanel runs
+    # the deploy, so this works for the primary domain without hardcoding a name.
+    # For an addon/subdomain, change to e.g. $HOME/nejautos.com/ instead.
+    - export DEPLOYPATH=$HOME/public_html/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp index.html            $DEPLOYPATH
     - /bin/cp styles.css            $DEPLOYPATH
