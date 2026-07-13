@@ -1,0 +1,16 @@
+# NEJ Autos admin — protect sensitive files from direct web access.
+
+# Never serve credentials, schema, docs, or the sample config over HTTP.
+<FilesMatch "^(config\.php|config\.sample\.php|schema\.sql|README\.md)$">
+  Require all denied
+</FilesMatch>
+
+# Keep the admin area out of search engines.
+Header set X-Robots-Tag "noindex, nofollow"
+
+# Basic hardening headers (ignored silently if mod_headers is unavailable).
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

@@ -1,0 +1,111 @@
+# NEJ Autos — Admin Control Centre
+
+A PHP + MySQL admin dashboard for managing the whole NEJ Autos operation:
+**inventory/cars** (with photo upload), **leads & sales**, **partners & leaderboard**,
+and **payouts & shares** — all live from your cPanel database.
+
+Lives at `https://nejautos.com/admin/`. The public site and shareable car pages are unchanged.
+
+```
+admin/
+├── index.html          # dashboard shell (login + SPA)
+├── admin.css           # styles (matches the portal's dark-navy / amber theme)
+├── admin.js            # single-page app logic
+├── schema.sql          # database tables
+├── config.sample.php   # copy to config.php and fill in DB credentials
+├── README.md           # this file
+├── uploads/cars/       # uploaded car photos land here (auto-created)
+└── api/
+    ├── _bootstrap.php  # DB connection, sessions, auth guard, JSON helpers
+    ├── install.php     # one-time installer (creates tables + first admin)
+    ├── auth.php        # login / session / logout
+    ├── cars.php        # inventory CRUD + photo upload + public read
+    ├── leads.php       # leads CRUD + public enquiry create
+    ├── partners.php    # partners CRUD
+    ├── payouts.php     # payouts CRUD
+    ├── shares.php      # share activity
+    └── stats.php       # dashboard KPIs
+```
+
+---
+
+## Setup (once, on your cPanel host)
+
+### 1. Create the database
+cPanel → **MySQL® Databases**:
+1. Create a database, e.g. `nejautos` (cPanel stores it as `youruser_nejautos`).
+2. Create a database user + password.
+3. **Add the user to the database** with **ALL PRIVILEGES**.
+
+Note the final names — they're prefixed with your cPanel username, e.g.
+`cpuser_nejautos` (db) and `cpuser_admin` (user).
+
+### 2. Configure
+In the `admin/` folder (via cPanel File Manager or SSH):
+1. Copy `config.sample.php` → `config.php`.
+2. Fill in `db_name`, `db_user`, `db_pass`.
+3. Set a temporary `install_token` to any long random string.
+
+`config.php` is git-ignored, so your credentials never reach GitHub.
+
+### 3. Install (creates tables + your admin login)
+Visit this URL once (replace the values):
+
+```
+https://nejautos.com/admin/api/install.php?token=YOUR_TOKEN&user=admin&pass=YourStrongPassword&demo=1
+```
+
+- `demo=1` seeds sample cars/partners/leads so the dashboard isn't empty. Drop it (or use `demo=0`) for a clean start.
+- You should see a JSON `{"ok":true,...}` response.
+
+### 4. Lock the installer
+Edit `config.php` again and set `'install_token' => ''` (blank).
+This disables `install.php` so it can never be re-run by anyone.
+
+### 5. Log in
+Open `https://nejautos.com/admin/` and sign in with the username/password from step 3.
+
+---
+
+## What each screen does
+
+| Screen | Manage / monitor |
+|--------|------------------|
+| **Overview** | Live KPIs: inventory value, sales won, open leads, partners, pending payouts, shares. Charts for lead pipeline, share platforms, stock mix, and a 6-month sales sparkline. |
+| **Inventory** | Add / edit / delete vehicles, upload photos, set price/mileage/status, flag EV/Premium/Bonus, and **generate a shareable `car.html` link** (optionally attributed to a partner referral code). |
+| **Leads** | Every enquiry, filter by status, change status inline (New → Contacted → Financing → Won/Lost), see which came via share links. |
+| **Partners** | The network roster + leaderboard: units, YTD, commission, shares; add/edit/suspend partners; auto-generated referral codes. |
+| **Payouts** | Record commission runs, mark them paid, track pending vs. paid totals. |
+| **Shares** | Share-to-earn activity log by platform and partner. |
+
+---
+
+## Connecting the public site (optional, next step)
+
+The API already exposes a **public, no-auth** read of live inventory:
+
+```
+GET /admin/api/cars.php?public=1   →  { "cars": [ ... ] }
+```
+
+and accepts **public enquiries + share events** (so `car.html`'s "I'm interested"
+and share buttons can write straight to the database):
+
+```
+POST /admin/api/leads.php    { customer, vehicle, phone, value, car_id, ref, via_share }
+POST /admin/api/shares.php   { vehicle, car_id, platform, ref }
+```
+
+To make `index.html` / `portal.html` show real inventory instead of the seeded
+demo data, point their fetch at `cars.php?public=1`. Say the word and I'll wire it up.
+
+---
+
+## Security notes
+
+- Passwords are stored with `password_hash()` (bcrypt); never in plain text.
+- All queries use PDO **prepared statements** (no SQL injection).
+- Admin session is an HTTP-only, `SameSite=Strict` cookie; mutations also enforce a same-origin check.
+- `config.php`, `schema.sql`, and this README are blocked from direct web access by `.htaccess`.
+- The `uploads/` folder has PHP execution disabled and serves images only.
+- Set `cookie_secure => true` (default) and serve the site over HTTPS.

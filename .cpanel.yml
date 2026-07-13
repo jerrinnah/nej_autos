@@ -16,3 +16,18 @@ deployment:
     - /bin/cp manifest.webmanifest  $DEPLOYPATH
     - /bin/cp sw.js                 $DEPLOYPATH
     - /bin/cp icon.svg              $DEPLOYPATH
+    # --- Admin control centre (PHP + MySQL) ---
+    # Copy the whole admin tree. This never touches the server-only config.php
+    # (it isn't in git) or existing uploads (cp merges, it doesn't delete).
+    - /bin/mkdir -p $DEPLOYPATH/admin/api $DEPLOYPATH/admin/uploads/cars
+    - /bin/cp -R admin/api           $DEPLOYPATH/admin/
+    - /bin/cp admin/index.html       $DEPLOYPATH/admin/
+    - /bin/cp admin/admin.css        $DEPLOYPATH/admin/
+    - /bin/cp admin/admin.js         $DEPLOYPATH/admin/
+    - /bin/cp admin/schema.sql       $DEPLOYPATH/admin/
+    - /bin/cp admin/config.sample.php $DEPLOYPATH/admin/
+    - /bin/cp admin/README.md        $DEPLOYPATH/admin/
+    - /bin/cp admin/.htaccess        $DEPLOYPATH/admin/
+    - /bin/cp admin/uploads/.htaccess $DEPLOYPATH/admin/uploads/
+    # Make the uploads folder writable so photo uploads can be saved.
+    - /bin/chmod -R 755 $DEPLOYPATH/admin/uploads

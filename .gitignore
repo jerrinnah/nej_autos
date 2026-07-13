@@ -10,3 +10,8 @@
 
 # Logs / temp
 *.log
+
+# Admin — real credentials & uploaded media never go to git
+admin/config.php
+admin/uploads/cars/*
+!admin/uploads/cars/.gitkeep
