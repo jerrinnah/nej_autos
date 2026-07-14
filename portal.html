@@ -4,26 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#080f1e" />
-  <meta name="description" content="NEJ Autos Partner Portal — dashboard, inventory, leads, commissions, and leaderboard for network partners." />
+  <meta name="description" content="NEJ Autos Partner Portal — brokers earn commission on sales; distributors earn from shared links. Track clicks, earnings and withdrawals." />
   <title>NEJ Autos — Partner Portal</title>
   <link rel="stylesheet" href="portal.css" />
-  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="icon" href="icon.svg" />
 </head>
 <body>
-  <!-- Auth screen -->
-  <div class="auth" id="auth"></div>
+  <!-- Auth (login / signup) -->
+  <div class="auth" id="auth" hidden></div>
 
   <!-- App shell -->
-  <div class="app" id="app">
-    <aside class="sidebar" id="sidebar"></aside>
-    <main class="main" id="main">
-      <div id="view"></div>
-    </main>
+  <div class="app" id="app" hidden>
+    <header class="topbar" id="topbar"></header>
+    <nav class="tabs" id="tabs"></nav>
+    <main class="view" id="view"></main>
   </div>
 
-  <!-- Mobile bottom navigation -->
-  <nav class="mobile-nav" id="mobile-nav"></nav>
+  <div class="modal-host" id="modal" hidden></div>
+  <div class="toasts" id="toasts"></div>
 
   <script src="portal.js"></script>
 </body>

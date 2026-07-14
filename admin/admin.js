@@ -137,12 +137,15 @@ async function logout() {
    App shell + navigation
    ========================================================================= */
 const NAV = [
-  { key: 'overview',  label: 'Overview',   ic: '📊' },
-  { key: 'inventory', label: 'Inventory',  ic: '🚗' },
-  { key: 'leads',     label: 'Leads',      ic: '📥' },
-  { key: 'partners',  label: 'Partners',   ic: '🤝' },
-  { key: 'payouts',   label: 'Payouts',    ic: '💸' },
-  { key: 'shares',    label: 'Shares',     ic: '🔗' },
+  { key: 'overview',    label: 'Overview',    ic: '📊' },
+  { key: 'inventory',   label: 'Inventory',   ic: '🚗' },
+  { key: 'leads',       label: 'Leads',       ic: '📥' },
+  { key: 'accounts',    label: 'Accounts',    ic: '👥' },
+  { key: 'withdrawals', label: 'Withdrawals', ic: '🏦' },
+  { key: 'partners',    label: 'Partners',    ic: '🤝' },
+  { key: 'payouts',     label: 'Payouts',     ic: '💸' },
+  { key: 'shares',      label: 'Shares',      ic: '🔗' },
+  { key: 'settings',    label: 'Settings',    ic: '⚙️' },
 ];
 
 function showApp() {
@@ -197,6 +200,9 @@ async function navigate(key) {
     if (key === 'partners')  await viewPartners();
     if (key === 'payouts')   await viewPayouts();
     if (key === 'shares')    await viewShares();
+    if (key === 'accounts')  await viewAccounts();
+    if (key === 'withdrawals') await viewWithdrawals();
+    if (key === 'settings')  await viewSettings();
   } catch (e) {
     if (e.status === 401) { showLogin('Your session expired. Please sign in again.'); return; }
     $('#view').innerHTML = `<div class="empty"><div class="em">⚠️</div>${esc(e.message)}</div>`;
@@ -719,6 +725,182 @@ async function viewShares() {
     await api(`shares.php?id=${b.dataset.delSh}`, { method: 'POST', body: { _delete: 1 } });
     toast('Share removed', 'ok'); navigate('shares');
   }));
+}
+
+/* =========================================================================
+   Accounts (broker / distributor)
+   ========================================================================= */
+let acctFilter = 'all';
+async function viewAccounts() {
+  let r;
+  try { r = await api('users.php'); }
+  catch (e) {
+    if (e.status === 500 || (e.data && /users/i.test(e.message))) {
+      $('#view').innerHTML = `<div class="empty"><div class="em">🧩</div>The broker/distributor tables aren't set up yet.<br>
+        <button class="btn btn-primary btn-sm" style="margin-top:1rem" id="runMig">Set up now</button></div>`;
+      $('#runMig').addEventListener('click', runMigration);
+      setTopbar('Accounts', 'Broker & distributor accounts.');
+      return;
+    }
+    throw e;
+  }
+  store.users = r.users;
+  const pending = store.users.filter(u => u.status === 'Pending').length;
+  setTopbar('Accounts', `${store.users.length} accounts · ${pending} awaiting approval`);
+  renderAccounts();
+}
+
+function renderAccounts() {
+  const counts = { all: store.users.length };
+  ['Pending', 'Active', 'Suspended'].forEach(s => counts[s] = store.users.filter(u => u.status === s).length);
+  const seg = ['all', 'Pending', 'Active', 'Suspended'].map(k =>
+    `<button class="${acctFilter === k ? 'on' : ''}" data-seg="${k}">${k === 'all' ? 'All' : k} ${counts[k] ? '· ' + counts[k] : ''}</button>`).join('');
+  let list = acctFilter === 'all' ? store.users : store.users.filter(u => u.status === acctFilter);
+  const stColor = { Active: 'green', Pending: 'amber', Suspended: 'red' };
+
+  $('#view').innerHTML = `
+    <div class="toolbar"><div class="seg">${seg}</div></div>
+    <div class="panel"><div class="tbl-wrap">
+      ${list.length ? `<table class="tbl">
+        <thead><tr><th>Account</th><th>Role</th><th>Code</th><th class="num">Withdrawable</th><th class="num">Locked</th><th>Status</th><th></th></tr></thead>
+        <tbody>${list.map(u => `
+          <tr>
+            <td><span class="row-emoji">${esc(initials(u.name))}</span><span class="cell-main">${esc(u.name)}</span><div class="cell-sub" style="margin-left:2.6rem">${esc(u.email)}</div></td>
+            <td>${u.role === 'broker' ? `<span class="pill amber">broker${u.commission_pct != null ? ' · ' + u.commission_pct + '%' : ''}</span>` : '<span class="pill purple">distributor</span>'}</td>
+            <td class="cell-sub">${esc(u.referral_code)}</td>
+            <td class="num cell-main">${money(u.balance.withdrawable)}</td>
+            <td class="num cell-sub">${money(u.balance.pending)}</td>
+            <td><span class="pill ${stColor[u.status] || 'grey'}">${esc(u.status)}</span></td>
+            <td style="white-space:nowrap">
+              ${u.status === 'Pending' ? `<button class="btn btn-primary btn-sm" data-approve="${u.id}">Approve</button>` : ''}
+              <button class="icon-btn" data-edit-u="${u.id}" title="Edit">✏️</button>
+              <button class="icon-btn" data-del-u="${u.id}" title="Delete">🗑</button>
+            </td>
+          </tr>`).join('')}</tbody></table>`
+      : `<div class="empty"><div class="em">👥</div>No accounts in this view.</div>`}
+    </div></div>`;
+
+  $$('[data-seg]').forEach(b => b.addEventListener('click', () => { acctFilter = b.dataset.seg; renderAccounts(); }));
+  $$('[data-approve]').forEach(b => b.addEventListener('click', async () => {
+    await api(`users.php?id=${b.dataset.approve}`, { method: 'POST', body: { status: 'Active' } });
+    toast('Account approved', 'ok'); navigate('accounts');
+  }));
+  $$('[data-edit-u]').forEach(b => b.addEventListener('click', () => accountModal(store.users.find(u => u.id == b.dataset.editU))));
+  $$('[data-del-u]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('Delete this account and all its links/earnings? This cannot be undone.')) return;
+    await api(`users.php?id=${b.dataset.delU}`, { method: 'POST', body: { _delete: 1 } });
+    toast('Account deleted', 'ok'); navigate('accounts');
+  }));
+}
+
+function accountModal(u) {
+  openModal(`${esc(u.name)}`, `
+    <div class="form-grid">
+      <div class="field"><label>Status</label><select class="input" id="u_status">${['Pending','Active','Suspended'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+      <div class="field"><label>Role</label><select class="input" id="u_role">${['broker','distributor'].map(s => `<option ${s === u.role ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+      <div class="field full"><label>Broker commission % (blank = use global default)</label><input class="input" id="u_pct" type="number" step="0.5" min="0" max="100" value="${u.commission_pct != null ? u.commission_pct : ''}" placeholder="e.g. 12"></div>
+    </div>
+    <p class="cell-sub">Code: <b>${esc(u.referral_code)}</b> · Joined ${esc(u.joined)} · ${money(u.balance.withdrawable)} withdrawable</p>
+  `, 'Save', async () => {
+    const pct = $('#u_pct').value.trim();
+    await api(`users.php?id=${u.id}`, { method: 'POST', body: {
+      status: $('#u_status').value, role: $('#u_role').value, commission_pct: pct === '' ? null : +pct } });
+    toast('Account updated', 'ok'); closeModal(); navigate('accounts'); return true;
+  });
+}
+
+async function runMigration() {
+  try { const r = await api('migrate.php'); toast('Tables ready', 'ok'); navigate('accounts'); }
+  catch (e) { toast(e.message, 'err'); }
+}
+
+/* =========================================================================
+   Withdrawals
+   ========================================================================= */
+async function viewWithdrawals() {
+  let r;
+  try { r = await api('withdrawals.php?admin=1'); }
+  catch (e) {
+    if (e.status === 500) { $('#view').innerHTML = `<div class="empty"><div class="em">🧩</div>Run setup on the Accounts tab first.</div>`; setTopbar('Withdrawals', ''); return; }
+    throw e;
+  }
+  const wds = r.withdrawals;
+  const pending = wds.filter(w => w.status === 'Requested').length;
+  setTopbar('Withdrawals', `${wds.length} total · ${pending} awaiting action`);
+  const stColor = { Requested: 'amber', Approved: 'blue', Paid: 'green', Rejected: 'red' };
+
+  $('#view').innerHTML = `
+    <div class="panel"><div class="tbl-wrap">
+      ${wds.length ? `<table class="tbl">
+        <thead><tr><th>Account</th><th class="num">Amount</th><th>Method</th><th>Details</th><th>Status</th><th>Requested</th><th></th></tr></thead>
+        <tbody>${wds.map(w => `
+          <tr>
+            <td><span class="cell-main">${esc(w.user.name)}</span> <span class="pill ${w.user.role === 'broker' ? 'amber' : 'purple'}" style="margin-left:.3rem">${esc(w.user.role)}</span><div class="cell-sub">${esc(w.user.email)}</div></td>
+            <td class="num cell-main">${money(w.amount)}</td>
+            <td class="cell-sub">${esc(w.method)}</td>
+            <td class="cell-sub" style="max-width:220px;white-space:normal">${esc(w.detail)}</td>
+            <td><span class="pill ${stColor[w.status] || 'grey'}">${esc(w.status)}</span></td>
+            <td class="cell-sub">${esc(w.requested)}</td>
+            <td style="white-space:nowrap">
+              ${w.status === 'Requested' ? `<button class="btn btn-ghost btn-sm" data-wd="${w.id}" data-st="Approved">Approve</button>` : ''}
+              ${w.status !== 'Paid' && w.status !== 'Rejected' ? `<button class="btn btn-primary btn-sm" data-wd="${w.id}" data-st="Paid">Mark paid</button>` : ''}
+              ${w.status === 'Requested' ? `<button class="icon-btn" data-wd="${w.id}" data-st="Rejected" title="Reject">✕</button>` : ''}
+            </td>
+          </tr>`).join('')}</tbody></table>`
+      : `<div class="empty"><div class="em">🏦</div>No withdrawal requests yet.</div>`}
+    </div></div>`;
+
+  $$('[data-wd]').forEach(b => b.addEventListener('click', async () => {
+    await api(`withdrawals.php?admin=1&id=${b.dataset.wd}`, { method: 'POST', body: { status: b.dataset.st } });
+    toast('Withdrawal ' + b.dataset.st.toLowerCase(), 'ok'); navigate('withdrawals');
+  }));
+}
+
+/* =========================================================================
+   Settings (economics)
+   ========================================================================= */
+async function viewSettings() {
+  let r;
+  try { r = await api('settings.php'); }
+  catch (e) {
+    if (e.status === 500) {
+      $('#view').innerHTML = `<div class="empty"><div class="em">🧩</div>Broker/distributor tables aren't set up yet.<br>
+        <button class="btn btn-primary btn-sm" style="margin-top:1rem" id="runMig2">Set up now</button></div>`;
+      $('#runMig2').addEventListener('click', runMigration); setTopbar('Settings', ''); return;
+    }
+    throw e;
+  }
+  const s = r.settings;
+  setTopbar('Settings', 'Commission rate, points and payout rules.');
+  $('#view').innerHTML = `
+    <div class="panel" style="max-width:640px">
+      <div class="panel-head"><h3>Economics</h3></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field"><label>Broker commission %</label><input class="input" id="set_rate" type="number" step="0.5" value="${s.broker_rate_pct}"></div>
+          <div class="field"><label>Points per unique click</label><input class="input" id="set_cp" type="number" value="${s.click_points}"></div>
+          <div class="field"><label>₦ value per point</label><input class="input" id="set_pv" type="number" value="${s.point_value_ngn}"></div>
+          <div class="field"><label>Distributor sale bonus (₦)</label><input class="input" id="set_bonus" type="number" value="${s.distributor_sale_bonus_ngn}"></div>
+          <div class="field full"><label>Minimum withdrawal (₦)</label><input class="input" id="set_min" type="number" value="${s.min_withdrawal_ngn}"></div>
+        </div>
+        <button class="btn btn-primary" id="saveSet">Save settings</button>
+      </div>
+    </div>
+    <div class="panel" style="max-width:640px">
+      <div class="panel-head"><h3>System</h3></div>
+      <div class="panel-body">
+        <p class="cell-sub" style="margin-top:0">Re-run the database migration if new tables are ever missing (safe — it only creates what's absent).</p>
+        <button class="btn btn-ghost btn-sm" id="runMig3">Run migration</button>
+      </div>
+    </div>`;
+  $('#saveSet').addEventListener('click', async () => {
+    await api('settings.php', { method: 'POST', body: {
+      broker_rate_pct: +$('#set_rate').value, click_points: +$('#set_cp').value,
+      point_value_ngn: +$('#set_pv').value, distributor_sale_bonus_ngn: +$('#set_bonus').value,
+      min_withdrawal_ngn: +$('#set_min').value } });
+    toast('Settings saved', 'ok');
+  });
+  $('#runMig3').addEventListener('click', runMigration);
 }
 
 /* =========================================================================

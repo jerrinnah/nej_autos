@@ -74,7 +74,14 @@ if (method() === 'POST' || method() === 'PUT') {
     $bind = [':id' => $id];
     foreach ($fields as $k => $v) $bind[":$k"] = $v;
     db()->prepare("UPDATE leads SET $sets WHERE id = :id")->execute($bind);
-    json_out(['ok' => true, 'id' => $id, 'updated' => true]);
+
+    // Marking a lead 'Won' is the sale event: pay the attributed broker/distributor.
+    $settled = false;
+    if (($fields['status'] ?? '') === 'Won') {
+        settle_sale($id);
+        $settled = true;
+    }
+    json_out(['ok' => true, 'id' => $id, 'updated' => true, 'settled' => $settled]);
 }
 
 json_err('Method not allowed.', 405);

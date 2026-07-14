@@ -26,6 +26,7 @@ deployment:
     - /bin/cp admin/admin.css        $DEPLOYPATH/admin/
     - /bin/cp admin/admin.js         $DEPLOYPATH/admin/
     - /bin/cp admin/schema.sql       $DEPLOYPATH/admin/
+    - /bin/cp admin/schema_v2.sql    $DEPLOYPATH/admin/
     - /bin/cp admin/config.sample.php $DEPLOYPATH/admin/
     - /bin/cp admin/README.md        $DEPLOYPATH/admin/
     - /bin/cp admin/.htaccess        $DEPLOYPATH/admin/

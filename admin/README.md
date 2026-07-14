@@ -104,6 +104,37 @@ demo data, point their fetch at `cars.php?public=1`. Say the word and I'll wire 
 
 ---
 
+## Broker & Distributor accounts (portal)
+
+The public portal at `nejautos.com/portal` lets people **self-register** as a
+**broker** or **distributor**. New accounts are `Pending` until you approve them
+under **Admin → Accounts**.
+
+**One-time setup:** after deploying, log into the admin panel and open the
+**Accounts** tab → click **Set up now** (or visit `/admin/api/migrate.php` while
+logged in). This creates the broker/distributor tables. Safe to re-run.
+
+**How they earn**
+- **Broker** — browses available cars, shares a tracked link, and earns a
+  **commission** (default **12%**, editable in Admin → Settings, or per-broker)
+  when the buyer's enquiry is marked **Won**.
+- **Distributor** — shares tracked links and earns **points per unique click**
+  (default 5 pts = ₦250) that accrue weekly, **plus a sale bonus** (default
+  ₦25,000) when a shared car sells. Click earnings stay **locked until that car
+  is sold**, then become withdrawable.
+
+**The loop**
+1. User signs up at `/portal` → you approve in **Admin → Accounts**.
+2. User picks a car → gets a tracked link `nejautos.com/l/<slug>`.
+3. Every click is logged (total + unique) and shown on their **My Links** tab.
+4. A visitor enquires → a lead is created, attributed by the user's referral code.
+5. You mark that lead **Won** in **Admin → Leads** → the system automatically
+   pays the broker commission / unlocks the distributor's points + bonus.
+6. The user requests a withdrawal → you approve/pay it under **Admin → Withdrawals**.
+
+**Tunable settings** (Admin → Settings): broker %, points per click, ₦ per point,
+distributor sale bonus, minimum withdrawal.
+
 ## Security notes
 
 - Passwords are stored with `password_hash()` (bcrypt); never in plain text.

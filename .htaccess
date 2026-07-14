@@ -8,6 +8,9 @@ DirectoryIndex index.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # 0) Tracked short links: /l/<slug> → click-tracking redirect
+  RewriteRule ^l/([A-Za-z0-9]+)/?$ admin/api/go.php?l=$1 [L,QSA]
+
   # 1) Redirect an explicit ".html" request to the clean URL (301, keeps query string)
   RewriteCond %{THE_REQUEST} \s/+(.+?)\.html[\s?] [NC]
   RewriteRule ^ /%1 [R=301,L]
