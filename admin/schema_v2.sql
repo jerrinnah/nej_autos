@@ -114,3 +114,15 @@ INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
   ('point_value_ngn',            '50'),      -- ₦ per point
   ('distributor_sale_bonus_ngn', '25000'),   -- ₦ bonus when a shared car sells
   ('min_withdrawal_ngn',         '10000');   -- minimum withdrawal
+
+-- Ready-to-use demo accounts (already Active). Passwords:
+--   broker@nejautos.com      → BrokerDemo2026
+--   distributor@nejautos.com → DistDemo2026
+-- Change or delete these under Admin → Accounts once you're set up.
+INSERT IGNORE INTO `users`
+  (`name`,`email`,`phone`,`company`,`password_hash`,`role`,`status`,`referral_code`,`approved_at`)
+VALUES
+  ('Demo Broker','broker@nejautos.com','','NEJ Demo',
+   '$2y$12$ZQsKuwzZZyqCRox6Zxg8bOhDtxxu797K9EU/JejQNujp63kOjvEq2','broker','Active','NEJ-BRK-DEMO',NOW()),
+  ('Demo Distributor','distributor@nejautos.com','','NEJ Demo',
+   '$2y$12$hSXVXljtL0eD3t6nz/1hFOh11MqOcb32KcMky.mwouRkNnli5WMPa','distributor','Active','NEJ-DST-DEMO',NOW());
