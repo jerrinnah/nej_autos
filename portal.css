@@ -141,6 +141,45 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; min-width
 .banner { display: flex; gap: .7rem; align-items: flex-start; background: var(--blue-soft); border: 1px solid rgba(96,165,250,.28); color: #cfe0fb; padding: .9rem 1.1rem; border-radius: var(--radius-sm); font-size: .86rem; line-height: 1.5; margin-bottom: 1.4rem; }
 .banner.amber { background: var(--accent-soft); border-color: rgba(245,166,35,.3); color: #ffe0a6; }
 
+/* ---- distributor simplified home ---- */
+.hero { background: linear-gradient(135deg, rgba(245,166,35,.10), rgba(167,139,250,.09)), rgba(15,28,52,.72);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; margin-bottom: 1.2rem; }
+.hero-top { display: flex; align-items: flex-start; gap: 1rem; }
+.hero-hi { margin: 0; font-size: 1.3rem; letter-spacing: -.02em; }
+.hero-sub { margin: .25rem 0 0; color: var(--muted); font-size: .9rem; }
+.hero-figs { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin-top: 1.2rem; }
+.fig { background: rgba(8,15,30,.45); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: .9rem 1rem; }
+.fig-lbl { display: block; font-size: .72rem; color: var(--faint); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.fig-val { display: block; font-size: 1.5rem; font-weight: 800; margin-top: .2rem; }
+.fig.ready .fig-val { color: var(--green); }
+.fig.wait .fig-val { color: var(--accent-2); }
+
+.cta-share { display: flex; align-items: center; gap: .9rem; width: 100%; text-align: left; cursor: pointer; margin-bottom: 1.2rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #08101f; border: none;
+  border-radius: var(--radius); padding: 1rem 1.2rem; box-shadow: 0 12px 28px rgba(245,166,35,.22); transition: transform .15s; }
+.cta-share:hover { transform: translateY(-2px); }
+.cta-share .cta-ic { font-size: 1.6rem; }
+.cta-share .cta-txt b { display: block; font-size: 1.02rem; }
+.cta-share .cta-txt small { display: block; font-size: .82rem; opacity: .82; }
+.cta-share .cta-arrow { margin-left: auto; font-size: 1.4rem; font-weight: 800; }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; margin-bottom: 1.4rem; }
+.step { background: rgba(15,28,52,.55); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; }
+.step-n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-2); font-weight: 800; font-size: .85rem; margin-bottom: .5rem; }
+.step b { display: block; font-size: .9rem; margin-bottom: .2rem; }
+.step small { color: var(--faint); font-size: .8rem; line-height: 1.4; }
+
+.act-list { display: flex; flex-direction: column; }
+.act { display: flex; align-items: center; gap: .8rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+.act:last-child { border-bottom: 0; }
+.act-ic { width: 38px; height: 38px; border-radius: 10px; background: var(--surface-hi); display: grid; place-items: center; font-size: 1.15rem; flex: 0 0 auto; }
+.act-main { flex: 1; min-width: 0; }
+.act-main b { display: block; font-size: .9rem; }
+.act-main small { color: var(--faint); font-size: .76rem; }
+.act-amt { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tiny { font-size: .66rem; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+.tiny.green { color: var(--green); }
+
 /* modal */
 .modal-host { position: fixed; inset: 0; z-index: 200; display: flex; align-items: flex-start; justify-content: center; padding: 2.5rem 1.2rem; background: rgba(6,11,22,.6); backdrop-filter: blur(6px); overflow-y: auto; }
 .modal { width: min(520px,100%); background: var(--surface); border: 1px solid var(--border-hi); border-radius: 20px; box-shadow: var(--shadow); }
@@ -160,4 +199,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; min-width
 .toast.ok { border-left-color: var(--green); } .toast.err { border-left-color: var(--red); }
 @keyframes slidein { from { opacity: 0; transform: translateX(20px); } }
 
-@media (max-width: 600px) { .role-pick { grid-template-columns: 1fr; } .topbar .code-chip { display: none; } }
+@media (max-width: 600px) {
+  .role-pick { grid-template-columns: 1fr; }
+  .topbar .code-chip { display: none; }
+  .steps { grid-template-columns: 1fr; }
+  .hero-figs { grid-template-columns: 1fr; }
+}

@@ -139,11 +139,17 @@ async function logout() {
    App shell
    ========================================================================= */
 function tabsFor(role) {
+  if (role === 'distributor') return [
+    { key: 'dashboard', label: '🏠 Home' },
+    { key: 'inventory', label: '🚗 Share Cars' },
+    { key: 'links',     label: '🔗 My Links' },
+    { key: 'earnings',  label: '💰 My Money' },
+  ];
   return [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'inventory', label: 'Inventory' },
     { key: 'links',     label: 'My Links' },
-    { key: 'earnings',  label: role === 'broker' ? 'Commission' : 'Earnings' },
+    { key: 'earnings',  label: 'Commission' },
   ];
 }
 
@@ -193,23 +199,93 @@ async function navigate(tab) {
    ========================================================================= */
 async function viewDashboard() {
   const me = store.me = (await api('me.php'));
-  const b = me.balance, isBroker = me.user.role === 'broker';
+  if (me.user.role === 'distributor') renderDistributorHome(me);
+  else renderBrokerHome(me);
+}
+
+/* ---- Distributor: simplified, plain-language home ---------------------- */
+function renderDistributorHome(me) {
+  const b = me.balance;
+  const first = (me.user.name || '').split(' ')[0] || 'there';
+  const ready = b.withdrawable;
+  const waiting = b.pending;
+  const canWithdraw = ready >= me.config.min_withdrawal;
+  const perClick = me.config.click_points * me.config.point_value_ngn;
+
+  $('#view').innerHTML = `
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <h2 class="hero-hi">Hi ${esc(first)} 👋</h2>
+          <p class="hero-sub">${me.links.count
+            ? `<b>${me.links.clicks.toLocaleString()}</b> clicks so far across <b>${me.links.count}</b> ${me.links.count === 1 ? 'link' : 'links'}.`
+            : `Share your first car link and start earning.`}</p>
+        </div>
+      </div>
+      <div class="hero-figs">
+        <div class="fig ready"><span class="fig-lbl">Ready to withdraw</span><span class="fig-val">${money(ready)}</span></div>
+        <div class="fig wait"><span class="fig-lbl">Waiting on a sale</span><span class="fig-val">${money(waiting)}</span></div>
+      </div>
+      <button class="btn btn-primary" id="wdHero" ${canWithdraw ? '' : 'disabled'} style="width:100%;margin-top:1rem">
+        ${canWithdraw ? 'Withdraw ' + money(ready) + ' →' : '🔒 Unlocks when a car you shared is sold'}
+      </button>
+    </div>
+
+    <button class="cta-share" id="ctaShare">
+      <span class="cta-ic">🔗</span>
+      <span class="cta-txt"><b>Share a car &amp; earn</b><small>${money(perClick)} for every new person who clicks</small></span>
+      <span class="cta-arrow">→</span>
+    </button>
+
+    <div class="steps">
+      <div class="step"><span class="step-n">1</span><b>Share a link</b><small>Pick a car, tap Share, send it anywhere.</small></div>
+      <div class="step"><span class="step-n">2</span><b>People click</b><small>You earn ${money(perClick)} per new visitor, tracked for you.</small></div>
+      <div class="step"><span class="step-n">3</span><b>Car sells → cash out</b><small>Your earnings unlock and you can withdraw.</small></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Recent activity</h3></div>
+      <div class="panel-body">
+        ${me.ledger.length
+          ? `<div class="act-list">${me.ledger.map(actItem).join('')}</div>`
+          : `<div class="empty" style="padding:1.4rem"><div class="em">✨</div>Nothing yet — share a car to see your earnings roll in.</div>`}
+      </div>
+    </div>`;
+
+  const wh = $('#wdHero'); if (wh && canWithdraw) wh.addEventListener('click', () => withdrawModal(ready, me.config.min_withdrawal));
+  $('#ctaShare').addEventListener('click', () => navigate('inventory'));
+}
+
+/* friendly one-line activity row (no jargon) */
+function actItem(l) {
+  let icon = '👆', text = 'Someone clicked your link';
+  if (l.type === 'sale_bonus') { icon = '🎉'; text = 'A car you shared sold — bonus!'; }
+  else if (l.type === 'sale_commission') { icon = '💰'; text = 'Commission earned'; }
+  else if (l.type === 'adjustment') { icon = '⚙️'; text = l.note || 'Adjustment'; }
+  const amt = l.amount ? '+' + money(l.amount) : '';
+  const tag = l.status === 'available'
+    ? '<span class="tiny green">ready ✓</span>'
+    : '<span class="tiny">waiting for sale</span>';
+  return `<div class="act">
+    <span class="act-ic">${icon}</span>
+    <div class="act-main"><b>${esc(text)}</b><small>${esc(l.date)}</small></div>
+    <div class="act-amt">${amt}<div>${tag}</div></div>
+  </div>`;
+}
+
+/* ---- Broker: full metrics view (unchanged) ----------------------------- */
+function renderBrokerHome(me) {
+  const b = me.balance;
   const kpi = (lbl, val, meta, glow, lock) =>
     `<div class="kpi ${lock ? 'lock' : ''}" style="--glow:${glow}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="meta">${meta}</div></div>`;
 
-  const banner = isBroker
-    ? `<div class="banner amber"><span>💡</span><div>You earn <b>${me.config.broker_rate_pct}% commission</b> on every car you close. Share a car's link, and when the buyer's enquiry is marked <b>Won</b>, your commission becomes withdrawable.</div></div>`
-    : `<div class="banner"><span>💡</span><div>You earn <b>${me.config.click_points} points</b> (${money(me.config.click_points * me.config.point_value_ngn)}) per unique click, plus a <b>${money(me.config.sale_bonus_ngn)} bonus</b> when a car you shared sells. Click earnings stay <b>locked until that car is sold</b> — then they’re withdrawable.</div></div>`;
-
   $('#view').innerHTML = `
-    ${banner}
+    <div class="banner amber"><span>💡</span><div>You earn <b>${me.config.broker_rate_pct}% commission</b> on every car you close. Share a car's link, and when the buyer's enquiry is marked <b>Won</b>, your commission becomes withdrawable.</div></div>
     <div class="kpis">
       ${kpi('Withdrawable', money(b.withdrawable), b.withdrawable > 0 ? 'Ready to withdraw' : 'Unlocks after a sale', 'rgba(52,211,153,.2)')}
-      ${kpi(isBroker ? 'Pending commission' : 'Locked earnings', money(b.pending + (b.available - b.withdrawable > 0 ? 0 : 0)), isBroker ? 'Clears when sale confirmed' : 'Unlocks when shared car sells', 'rgba(245,166,35,.2)', true)}
-      ${isBroker
-        ? kpi('Sales won', me.salesWon, `${me.links.count} links shared`, 'rgba(96,165,250,.2)')
-        : kpi('Points', me.balance.points.toLocaleString(), `${money(me.config.point_value_ngn)} per point`, 'rgba(167,139,250,.2)')}
-      ${kpi('This week', money(me.week.amount), me.week.label, 'rgba(245,166,35,.2)')}
+      ${kpi('Pending commission', money(b.pending), 'Clears when sale confirmed', 'rgba(245,166,35,.2)', true)}
+      ${kpi('Sales won', me.salesWon, `${me.links.count} links shared`, 'rgba(96,165,250,.2)')}
+      ${kpi('This week', money(me.week.amount), 'earned this week', 'rgba(245,166,35,.2)')}
       ${kpi('Total clicks', me.links.clicks.toLocaleString(), `${me.links.uniques.toLocaleString()} unique`, 'rgba(96,165,250,.2)')}
     </div>
 
@@ -218,12 +294,11 @@ async function viewDashboard() {
         <button class="btn btn-primary btn-sm" id="goShare">Share a car →</button></div>
       <div class="tbl-wrap">
         ${me.ledger.length ? `<table class="tbl">
-          <thead><tr><th>Type</th><th>Detail</th><th class="num">Points</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead>
+          <thead><tr><th>Type</th><th>Detail</th><th class="num">Amount</th><th>Status</th><th>Date</th></tr></thead>
           <tbody>${me.ledger.map(l => `
             <tr>
               <td>${ledgerTag(l.type)}</td>
               <td class="cell-sub">${esc(l.note || '—')}</td>
-              <td class="num">${l.points ? '+' + l.points : '—'}</td>
               <td class="num cell-main">${l.amount ? money(l.amount) : '—'}</td>
               <td>${l.status === 'available' ? '<span class="pill green">available</span>' : '<span class="pill grey">locked</span>'}</td>
               <td class="cell-sub">${esc(l.date)}</td>
@@ -324,13 +399,62 @@ async function viewLinks() {
    ========================================================================= */
 async function viewEarnings() {
   const me = store.me = (await api('me.php'));
+  if (me.user.role === 'distributor') renderDistributorMoney(me);
+  else renderBrokerCommission(me);
+}
+
+/* ---- Distributor: simple "My Money" ------------------------------------ */
+function renderDistributorMoney(me) {
+  const b = me.balance;
+  const canWithdraw = b.withdrawable >= me.config.min_withdrawal;
+
+  $('#view').innerHTML = `
+    <div class="hero">
+      <div class="hero-figs">
+        <div class="fig ready"><span class="fig-lbl">Ready to withdraw</span><span class="fig-val">${money(b.withdrawable)}</span></div>
+        <div class="fig wait"><span class="fig-lbl">Waiting on a sale</span><span class="fig-val">${money(b.pending)}</span></div>
+      </div>
+      <button class="btn btn-primary" id="wdBtn" ${canWithdraw ? '' : 'disabled'} style="width:100%;margin-top:1rem">
+        ${canWithdraw ? 'Withdraw ' + money(b.withdrawable) + ' →' : '🔒 Unlocks when a car you shared is sold'}
+      </button>
+      <p class="hero-sub" style="margin-top:.8rem;text-align:center">
+        ${canWithdraw
+          ? 'NEJ Autos reviews and pays your withdrawal.'
+          : `You need ${money(me.config.min_withdrawal)} unlocked. Earnings unlock the moment a car you shared sells.`}
+      </p>
+    </div>
+
+    ${me.withdrawals.length ? `<div class="panel">
+      <div class="panel-head"><h3>Your withdrawals</h3></div>
+      <div class="panel-body"><div class="act-list">
+        ${me.withdrawals.map(w => `<div class="act">
+          <span class="act-ic">🏦</span>
+          <div class="act-main"><b>${money(w.amount)}</b><small>Requested ${esc(w.requested)}</small></div>
+          <div class="act-amt">${wdPill(w.status)}</div>
+        </div>`).join('')}
+      </div></div>
+    </div>` : ''}
+
+    <div class="panel">
+      <div class="panel-head"><h3>Where your money came from</h3></div>
+      <div class="panel-body">
+        ${me.ledger.length ? `<div class="act-list">${me.ledger.map(actItem).join('')}</div>`
+          : `<div class="empty" style="padding:1.4rem"><div class="em">💰</div>No earnings yet — share a car to begin.</div>`}
+      </div>
+    </div>`;
+
+  const wb = $('#wdBtn'); if (wb && canWithdraw) wb.addEventListener('click', () => withdrawModal(b.withdrawable, me.config.min_withdrawal));
+}
+
+/* ---- Broker: full commission view -------------------------------------- */
+function renderBrokerCommission(me) {
   const b = me.balance;
   const canWithdraw = b.withdrawable >= me.config.min_withdrawal;
 
   $('#view').innerHTML = `
     <div class="kpis">
       <div class="kpi" style="--glow:rgba(52,211,153,.2)"><div class="lbl">Withdrawable</div><div class="val">${money(b.withdrawable)}</div><div class="meta">min ${money(me.config.min_withdrawal)}</div></div>
-      <div class="kpi lock" style="--glow:rgba(245,166,35,.2)"><div class="lbl">Locked / pending</div><div class="val">${money(b.pending)}</div><div class="meta">${me.user.role === 'broker' ? 'clears when sale confirmed' : 'unlocks when shared car sells'}</div></div>
+      <div class="kpi lock" style="--glow:rgba(245,166,35,.2)"><div class="lbl">Pending commission</div><div class="val">${money(b.pending)}</div><div class="meta">clears when sale confirmed</div></div>
       <div class="kpi" style="--glow:rgba(96,165,250,.2)"><div class="lbl">Reserved</div><div class="val">${money(b.reserved)}</div><div class="meta">in withdrawal requests</div></div>
     </div>
 
@@ -340,7 +464,7 @@ async function viewEarnings() {
       <div class="panel-body">
         ${canWithdraw
           ? `<p class="cell-sub" style="margin:0">You have ${money(b.withdrawable)} ready. Withdrawals are reviewed and paid by NEJ Autos.</p>`
-          : `<p class="cell-sub" style="margin:0">Nothing withdrawable yet. ${me.user.role === 'broker' ? 'Commission unlocks when a sale you brokered is confirmed.' : 'Click earnings unlock once a car you shared is sold.'} Minimum withdrawal is ${money(me.config.min_withdrawal)}.</p>`}
+          : `<p class="cell-sub" style="margin:0">Nothing withdrawable yet. Commission unlocks when a sale you brokered is confirmed. Minimum withdrawal is ${money(me.config.min_withdrawal)}.</p>`}
       </div>
     </div>
 
