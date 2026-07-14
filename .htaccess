@@ -1,0 +1,19 @@
+# NEJ Autos — clean URLs + basic hardening
+# Serves /car for car.html, /portal for portal.html, etc. and 301-redirects
+# any old ".html" links to their clean form so shared links look modern.
+
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1) Redirect an explicit ".html" request to the clean URL (301, keeps query string)
+  RewriteCond %{THE_REQUEST} \s/+(.+?)\.html[\s?] [NC]
+  RewriteRule ^ /%1 [R=301,L]
+
+  # 2) Internally serve the .html file for a clean / extensionless URL
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.html -f
+  RewriteRule ^(.+?)/?$ $1.html [L]
+</IfModule>

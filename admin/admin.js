@@ -167,7 +167,7 @@ function renderSidebar() {
         </div>`).join('')}
     </nav>
     <div class="side-foot">
-      <a class="nav-item" href="../index.html" target="_blank"><span class="ic">🌐</span>View site</a>
+      <a class="nav-item" href="../" target="_blank"><span class="ic">🌐</span>View site</a>
       <div class="nav-item" data-logout><span class="ic">↩︎</span>Sign out</div>
       <div class="side-user">
         <div class="av">${esc(initials(store.admin?.name))}</div>
@@ -450,7 +450,7 @@ async function deleteCar(id) {
 
 /* --- shareable public car link (matches car.js query params) --- */
 function carShareUrl(c, ref) {
-  const base = new URL('../car.html', location.href);
+  const base = new URL('../car', location.href);   // clean URL — .htaccess maps /car → car.html
   const p = base.searchParams;
   p.set('id', 'veh-' + c.id); p.set('mk', c.make); p.set('mo', c.model);
   p.set('yr', c.year); p.set('pr', c.price); p.set('em', c.emoji);

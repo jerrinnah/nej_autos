@@ -6,6 +6,7 @@ deployment:
     # For an addon/subdomain, change to e.g. $HOME/nejautos.com/ instead.
     - export DEPLOYPATH=$HOME/public_html/
     - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp .htaccess             $DEPLOYPATH
     - /bin/cp index.html            $DEPLOYPATH
     - /bin/cp styles.css            $DEPLOYPATH
     - /bin/cp portal.html           $DEPLOYPATH
