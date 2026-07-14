@@ -5,11 +5,10 @@
   Require all denied
 </FilesMatch>
 
-# Keep the admin area out of search engines.
-Header set X-Robots-Tag "noindex, nofollow"
-
-# Basic hardening headers (ignored silently if mod_headers is unavailable).
+# Hardening headers + keep the admin area out of search engines.
+# All wrapped in IfModule so a host without mod_headers doesn't 500 the folder.
 <IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set Referrer-Policy "strict-origin-when-cross-origin"

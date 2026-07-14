@@ -1,14 +1,16 @@
 # Uploaded car photos are static media only — never execute code here.
-php_flag engine off
-
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  # Only allow image files to be served from the uploads tree.
-  RewriteCond %{REQUEST_FILENAME} -f
-  RewriteCond %{REQUEST_URI} !\.(jpe?g|png|webp|gif)$ [NC]
-  RewriteRule .* - [F]
+# php_flag only works under mod_php, so guard it or it 500s under PHP-FPM/LiteSpeed.
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+  php_flag engine off
 </IfModule>
 
-<FilesMatch "\.(php|phtml|php3|php4|php5|phar|cgi|pl|py|sh|html?)$">
+# Cross-handler safe way to block script execution in this folder.
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phar|cgi|pl|py|sh|html?)$">
   Require all denied
 </FilesMatch>
