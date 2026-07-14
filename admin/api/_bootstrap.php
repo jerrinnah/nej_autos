@@ -233,19 +233,29 @@ function settle_sale(int $leadId): void {
     if (!$user) return;
 
     $carId = (int)($lead['car_id'] ?? 0) ?: null;
-    $value = (int)($lead['value'] ?? 0);
     $week  = iso_week();
+
+    // FIX #2: settle from the car's REAL price in the DB, never the value that
+    // the (public) enquiry endpoint received from the browser — that field is
+    // attacker-controllable. Fall back to lead.value only for car-less leads.
+    $saleValue = (int)($lead['value'] ?? 0);
+    if ($carId) {
+        $cq = $pdo->prepare('SELECT price FROM cars WHERE id = :id');
+        $cq->execute([':id' => $carId]);
+        $cp = $cq->fetchColumn();
+        if ($cp !== false) $saleValue = (int)$cp;
+    }
 
     if ($user['role'] === 'broker') {
         $rate = $user['commission_pct'] !== null
             ? (float)$user['commission_pct']
             : (float)setting('broker_rate_pct', '12');
-        $amount = (int)round($value * $rate / 100);
+        $amount = (int)round($saleValue * $rate / 100);
         $pdo->prepare(
             'INSERT INTO ledger (user_id,type,amount,status,car_id,lead_id,week,note)
              VALUES (:u,\'sale_commission\',:a,\'available\',:c,:l,:w,:n)'
         )->execute([':u' => $user['id'], ':a' => $amount, ':c' => $carId, ':l' => $leadId, ':w' => $week,
-                    ':n' => 'Commission ' . rtrim(rtrim(number_format($rate, 2), '0'), '.') . '% on ' . $lead['vehicle']]);
+                    ':n' => 'Commission ' . rtrim(rtrim(number_format($rate, 2), '0'), '.') . '% of ' . money_ngn($saleValue)]);
     } else { // distributor
         $bonus = (int)setting('distributor_sale_bonus_ngn', '25000');
         $pdo->prepare(
@@ -254,15 +264,35 @@ function settle_sale(int $leadId): void {
         )->execute([':u' => $user['id'], ':a' => $bonus, ':c' => $carId, ':l' => $leadId, ':w' => $week,
                     ':n' => 'Sale bonus — ' . $lead['vehicle']]);
 
-        // Unlock pending click points earned on this car's links → withdrawable.
+        // FIX #1b: unlock this car's pending click points, but cap the total
+        // unlocked at a share of the real sale value. This stops a distributor
+        // from farming thousands of fake clicks and cashing them all out on one
+        // small genuine sale. Oldest points unlock first; the rest stay locked
+        // (they can unlock against future genuine sales of the same car).
         if ($carId) {
-            $pdo->prepare(
-                "UPDATE ledger SET status='available'
-                 WHERE user_id=:u AND car_id=:c AND type='click_points' AND status='pending'"
-            )->execute([':u' => $user['id'], ':c' => $carId]);
+            $capPct = (float)setting('click_unlock_cap_pct', '20');
+            $capAmt = (int)floor($saleValue * $capPct / 100);
+            if ($capAmt > 0) {
+                $rows = $pdo->prepare(
+                    "SELECT id, amount FROM ledger
+                     WHERE user_id=:u AND car_id=:c AND type='click_points' AND status='pending'
+                     ORDER BY id ASC");
+                $rows->execute([':u' => $user['id'], ':c' => $carId]);
+                $acc = 0; $ids = [];
+                foreach ($rows->fetchAll() as $r) {
+                    if ($acc + (int)$r['amount'] > $capAmt) break;
+                    $acc += (int)$r['amount']; $ids[] = (int)$r['id'];
+                }
+                if ($ids) {
+                    $ph = implode(',', array_fill(0, count($ids), '?'));
+                    $pdo->prepare("UPDATE ledger SET status='available' WHERE id IN ($ph)")->execute($ids);
+                }
+            }
         }
     }
 }
+
+function money_ngn(int $n): string { return '₦' . number_format($n); }
 
 /** Balance summary for a user: available (withdrawable), pending, points. */
 function user_balance(int $userId): array {

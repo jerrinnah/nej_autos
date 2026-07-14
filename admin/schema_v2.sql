@@ -113,7 +113,9 @@ INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
   ('click_points',               '5'),       -- points per unique click (distributor)
   ('point_value_ngn',            '50'),      -- ₦ per point
   ('distributor_sale_bonus_ngn', '25000'),   -- ₦ bonus when a shared car sells
-  ('min_withdrawal_ngn',         '10000');   -- minimum withdrawal
+  ('min_withdrawal_ngn',         '10000'),   -- minimum withdrawal
+  ('max_click_points_per_link_day', '20'),   -- anti-fraud: rewarded clicks per link per day
+  ('click_unlock_cap_pct',       '20');      -- anti-fraud: unlock click points up to this % of sale value
 
 -- Ready-to-use demo accounts (already Active). Passwords:
 --   broker@nejautos.com      → BrokerDemo2026

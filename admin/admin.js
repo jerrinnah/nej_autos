@@ -887,6 +887,17 @@ async function viewSettings() {
       </div>
     </div>
     <div class="panel" style="max-width:640px">
+      <div class="panel-head"><h3>Anti-fraud limits</h3></div>
+      <div class="panel-body">
+        <p class="cell-sub" style="margin-top:0">Guards against click farming. A distributor can only be rewarded for so many clicks per link each day, and click earnings unlock on a sale only up to a share of that car's real price.</p>
+        <div class="form-grid">
+          <div class="field"><label>Max rewarded clicks / link / day</label><input class="input" id="set_daycap" type="number" value="${s.max_click_points_per_link_day}"></div>
+          <div class="field"><label>Click unlock cap (% of sale)</label><input class="input" id="set_unlockcap" type="number" value="${s.click_unlock_cap_pct}"></div>
+        </div>
+        <button class="btn btn-primary" id="saveFraud">Save limits</button>
+      </div>
+    </div>
+    <div class="panel" style="max-width:640px">
       <div class="panel-head"><h3>System</h3></div>
       <div class="panel-body">
         <p class="cell-sub" style="margin-top:0">Re-run the database migration if new tables are ever missing (safe — it only creates what's absent).</p>
@@ -899,6 +910,12 @@ async function viewSettings() {
       point_value_ngn: +$('#set_pv').value, distributor_sale_bonus_ngn: +$('#set_bonus').value,
       min_withdrawal_ngn: +$('#set_min').value } });
     toast('Settings saved', 'ok');
+  });
+  $('#saveFraud').addEventListener('click', async () => {
+    await api('settings.php', { method: 'POST', body: {
+      max_click_points_per_link_day: +$('#set_daycap').value,
+      click_unlock_cap_pct: +$('#set_unlockcap').value } });
+    toast('Limits saved', 'ok');
   });
   $('#runMig3').addEventListener('click', runMigration);
 }

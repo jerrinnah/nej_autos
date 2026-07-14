@@ -15,6 +15,8 @@ $ALLOWED = [
     'point_value_ngn'           => [0, 1000000],
     'distributor_sale_bonus_ngn'=> [0, 100000000],
     'min_withdrawal_ngn'        => [0, 100000000],
+    'max_click_points_per_link_day' => [0, 100000],
+    'click_unlock_cap_pct'      => [0, 100],
 ];
 
 if (method() === 'GET') {

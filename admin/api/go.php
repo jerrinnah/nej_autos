@@ -48,13 +48,26 @@ if (!$isBot) {
         $u->execute([':id' => $link['user_id']]);
         $role = $u->fetchColumn();
         if ($role === 'distributor') {
-            $pts = (int)setting('click_points', '5');
-            $val = $pts * (int)setting('point_value_ngn', '50');
-            $pdo->prepare(
-                'INSERT INTO ledger (user_id,type,points,amount,status,car_id,link_id,week,note)
-                 VALUES (:u,\'click_points\',:p,:a,\'pending\',:c,:l,:w,:n)'
-            )->execute([':u' => $link['user_id'], ':p' => $pts, ':a' => $val, ':c' => $link['car_id'],
-                        ':l' => $link['id'], ':w' => iso_week(), ':n' => 'Unique click']);
+            // FIX #1a: cap how many clicks a single link can earn per day, so a
+            // distributor can't farm unlimited "unique" clicks (VPN / embeds).
+            // The click is still logged above for analytics; only the reward is gated.
+            $dayCap = (int)setting('max_click_points_per_link_day', '20');
+            $rewarded = 0;
+            if ($dayCap > 0) {
+                $dc = $pdo->prepare("SELECT COUNT(*) FROM ledger
+                                     WHERE link_id=:l AND type='click_points' AND DATE(created_at)=CURDATE()");
+                $dc->execute([':l' => $link['id']]);
+                $rewarded = (int)$dc->fetchColumn();
+            }
+            if ($dayCap === 0 || $rewarded < $dayCap) {
+                $pts = (int)setting('click_points', '5');
+                $val = $pts * (int)setting('point_value_ngn', '50');
+                $pdo->prepare(
+                    'INSERT INTO ledger (user_id,type,points,amount,status,car_id,link_id,week,note)
+                     VALUES (:u,\'click_points\',:p,:a,\'pending\',:c,:l,:w,:n)'
+                )->execute([':u' => $link['user_id'], ':p' => $pts, ':a' => $val, ':c' => $link['car_id'],
+                            ':l' => $link['id'], ':w' => iso_week(), ':n' => 'Unique click']);
+            }
         }
     }
 }
