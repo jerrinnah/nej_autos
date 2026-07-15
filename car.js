@@ -41,13 +41,33 @@ const STUDIO = [
   'radial-gradient(circle at 40% 42%, #ffffff 0%, #eaeef3 68%, #dbe1e8 100%)',
   'radial-gradient(circle at 60% 40%, #ffffff 0%, #edeff3 70%, #e4e8ee 100%)',
 ];
-const slides = car.imgs.length
-  ? car.imgs.map(u => `<div class="slide"><img src="${esc(u)}" alt="${esc(car.make + ' ' + car.model)}"></div>`)
-  : STUDIO.map(g => `<div class="slide"><div class="studio" style="background:${g}"><span class="emoji">${car.emoji}</span></div></div>`);
+// Rebuilt whenever the car's data changes (e.g. after loading it by id).
+let slides = [];
+let thumbs = [];
+function buildMedia() {
+  slides = car.imgs.length
+    ? car.imgs.map(u => `<div class="slide"><img src="${esc(u)}" alt="${esc(car.make + ' ' + car.model)}"></div>`)
+    : STUDIO.map(g => `<div class="slide"><div class="studio" style="background:${g}"><span class="emoji">${car.emoji}</span></div></div>`);
+  thumbs = car.imgs.length
+    ? car.imgs.map((u, i) => `<button class="thumb ${i === 0 ? 'active' : ''}" data-i="${i}"><img src="${esc(u)}" alt=""></button>`)
+    : STUDIO.map((g, i) => `<button class="thumb ${i === 0 ? 'active' : ''}" data-i="${i}"><span class="mini" style="background:${g}">${car.emoji}</span></button>`);
+}
 
-const thumbs = car.imgs.length
-  ? car.imgs.map((u, i) => `<button class="thumb ${i === 0 ? 'active' : ''}" data-i="${i}"><img src="${esc(u)}" alt=""></button>`)
-  : STUDIO.map((g, i) => `<button class="thumb ${i === 0 ? 'active' : ''}" data-i="${i}"><span class="mini" style="background:${g}">${car.emoji}</span></button>`);
+// Merge a car record from the public API into the local `car` object,
+// keeping the sharing partner's ref/by (which only live in the URL).
+function applyApiCar(a) {
+  car.make = a.make || car.make;
+  car.model = a.model || car.model;
+  car.year = a.year || car.year;
+  car.price = +a.price || 0;
+  car.emoji = a.emoji || car.emoji;
+  car.body = a.body || car.body;
+  car.mileage = +a.mileage || 0;
+  car.bonus = !!a.target_bonus;
+  car.ev = !!a.is_ev;
+  car.bg = BGS[+a.bg] || BGS[0];
+  if (Array.isArray(a.photos) && a.photos.length) car.imgs = a.photos;
+}
 
 function specCell(k, v) {
   return `<div class="spec-cell"><div class="k">${k}</div><div class="v">${v}</div></div>`;
@@ -70,6 +90,7 @@ function description() {
 }
 
 function render() {
+  buildMedia();
   document.getElementById('app').innerHTML = `
     <div class="detail">
       <div class="gallery">
@@ -276,4 +297,35 @@ function openShare() {
 }
 
 Object.assign(window, { render, showEnquiry, enquire, openShare });
-render();
+
+/* ---------------------------------------------------------------------------
+   Init. Short links (/car?id=N&ref=CODE) carry only the id, so we load the
+   car's details from the database. Old long links (…&mk=…&pr=…) still render
+   instantly from their own params, then refresh with canonical data if the
+   car still exists. Falls back gracefully if the fetch fails.
+--------------------------------------------------------------------------- */
+async function init() {
+  const hasInline = !!P.get('mk');
+  const numericId = /^\d+$/.test(String(car.id));
+
+  if (hasInline) render();
+  else if (numericId) {
+    document.getElementById('app').innerHTML =
+      '<p style="padding:4rem 0;text-align:center;color:#9096a1">Loading vehicle…</p>';
+  }
+
+  if (numericId) {
+    try {
+      const r = await fetch('/admin/api/cars.php?public=1&id=' + encodeURIComponent(car.id), {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        if (d && d.car) { applyApiCar(d.car); render(); return; }
+      }
+    } catch (e) { /* fall back to whatever we have */ }
+  }
+
+  if (!hasInline) render();   // no id / fetch failed → render defaults or URL data
+}
+init();

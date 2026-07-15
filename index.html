@@ -436,22 +436,8 @@
       var tag = c.is_ev ? 'EV' : (c.is_premium ? 'Premium' : (c.target_bonus ? 'Bonus' : ''));
       var featured = c.is_premium ? ' featured' : '';
 
-      var params = new URLSearchParams();
-      params.set('id', c.id);
-      params.set('mk', c.make || 'NEJ');
-      params.set('mo', c.model || 'Vehicle');
-      params.set('yr', c.year || '');
-      params.set('pr', c.price || 0);
-      params.set('em', c.emoji || '🚗');
-      params.set('bd', c.body || 'Vehicle');
-      params.set('mi', c.mileage || 0);
-      params.set('bn', c.target_bonus ? '1' : '0');
-      params.set('ev', c.is_ev ? '1' : '0');
-      params.set('bg', c.bg || 0);
-      params.set('by', 'NEJ Autos');
-      params.set('ref', 'NEJ-DIRECT');
-      if (c.photos && c.photos.length) params.set('imgs', c.photos.join(','));
-      var href = 'car?' + params.toString();
+      // Short, shareable link — the car page loads the rest by id from the DB.
+      var href = 'car?id=' + encodeURIComponent(c.id) + '&ref=NEJ-DIRECT';
 
       var media = (c.photos && c.photos.length)
         ? '<div class="car-media" style="background-image:url(&quot;' + escAttr(c.photos[0]) + '&quot;);background-size:cover;background-position:center;font-size:0;">' + (tag ? '<span class="tag">' + escapeHtml(tag) + '</span>' : '') + '</div>'

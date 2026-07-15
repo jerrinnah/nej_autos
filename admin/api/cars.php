@@ -16,10 +16,18 @@ $id = (int)param('id', 0);
 
 /* ---- public read: the live site / car pages can consume this openly ---- */
 if (method() === 'GET' && (string)param('public', '') === '1') {
+    $cols = "id, make, model, year, price, mileage, body, emoji, bg, is_ev, is_premium,
+             target_bonus, cond_score, inspection, status, photos";
+    // Single car by id (used by the shareable car page: /car?id=N) — Available only.
+    if ($id > 0) {
+        $st = db()->prepare("SELECT $cols FROM cars WHERE id = :id AND status = 'Available'");
+        $st->execute([':id' => $id]);
+        $row = $st->fetch();
+        if (!$row) json_err('Car not available.', 404);
+        json_out(['ok' => true, 'car' => shape_car($row)]);
+    }
     $rows = db()->query(
-        "SELECT id, make, model, year, price, mileage, body, emoji, bg, is_ev, is_premium,
-                target_bonus, cond_score, inspection, status, photos
-         FROM cars WHERE status = 'Available' ORDER BY updated_at DESC")->fetchAll();
+        "SELECT $cols FROM cars WHERE status = 'Available' ORDER BY updated_at DESC")->fetchAll();
     json_out(['ok' => true, 'cars' => array_map('shape_car', $rows)]);
 }
 
