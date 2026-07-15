@@ -8,7 +8,14 @@ DirectoryIndex index.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # 0) Tracked short links: /l/<slug> → click-tracking redirect
+  # 0a) Force HTTPS. The site's session cookies are marked "Secure", so browsers
+  #     drop them on plain HTTP — which silently breaks admin/portal login.
+  #     Behind Cloudflare we must read the VISITOR's scheme from X-Forwarded-Proto
+  #     (checking %{HTTPS} would loop under Flexible SSL, where CF→origin is HTTP).
+  RewriteCond %{HTTP:X-Forwarded-Proto} =http [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 0b) Tracked short links: /l/<slug> → click-tracking redirect
   RewriteRule ^l/([A-Za-z0-9]+)/?$ admin/api/go.php?l=$1 [L,QSA]
 
   # 1) Redirect an explicit ".html" request to the clean URL (301, keeps query string)
