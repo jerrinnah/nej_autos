@@ -13,6 +13,7 @@ deployment:
     - /bin/cp portal.css            $DEPLOYPATH
     - /bin/cp portal.js             $DEPLOYPATH
     - /bin/cp car.html              $DEPLOYPATH
+    - /bin/cp car.php               $DEPLOYPATH
     - /bin/cp car.js                $DEPLOYPATH
     - /bin/cp manifest.webmanifest  $DEPLOYPATH
     - /bin/cp sw.js                 $DEPLOYPATH
