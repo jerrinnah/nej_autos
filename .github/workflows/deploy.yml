@@ -1,0 +1,51 @@
+name: Deploy to cPanel
+
+# Auto-deploys the site to cPanel over secure FTPS on every push to main.
+# No more manual "Update from Remote / Deploy HEAD Commit" in cPanel.
+#
+# Setup (one time) — add these repo secrets under
+#   GitHub → Settings → Secrets and variables → Actions → New repository secret:
+#     FTP_SERVER    e.g. ftp.nejautos.com  (or the server hostname / IP from cPanel)
+#     FTP_USERNAME  your cPanel / FTP account username
+#     FTP_PASSWORD  the FTP account password
+#
+# server-dir below assumes the FTP login lands in the account home directory,
+# so files go into public_html/. If your FTP account is already scoped to the
+# web root, change server-dir to "./".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}   # lets you trigger a deploy manually from the Actions tab
+
+concurrency:
+  group: deploy-cpanel
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./
+          server-dir: public_html/
+          # NEVER touch these on the server (user data + server-only secrets):
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            .vercel/**
+            admin/config.php
+            admin/uploads/**
+            .cpanel.yml
+            .gitignore
