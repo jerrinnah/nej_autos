@@ -881,8 +881,11 @@ async function viewSettings() {
           <div class="field"><label>Points per unique click</label><input class="input" id="set_cp" type="number" value="${s.click_points}"></div>
           <div class="field"><label>₦ value per point</label><input class="input" id="set_pv" type="number" value="${s.point_value_ngn}"></div>
           <div class="field"><label>Distributor sale bonus (₦)</label><input class="input" id="set_bonus" type="number" value="${s.distributor_sale_bonus_ngn}"></div>
+          <div class="field"><label>Share reward (₦)</label><input class="input" id="set_sharereward" type="number" value="${s.share_reward_ngn}"></div>
+          <div class="field"><label>Max counted shares / day</label><input class="input" id="set_sharecap" type="number" value="${s.max_counted_shares_per_day}"></div>
           <div class="field full"><label>Minimum withdrawal (₦)</label><input class="input" id="set_min" type="number" value="${s.min_withdrawal_ngn}"></div>
         </div>
+        <p class="cell-sub">Share reward is paid per counted share (up to the daily cap) and unlocks when a car the partner shared is sold.</p>
         <button class="btn btn-primary" id="saveSet">Save settings</button>
       </div>
     </div>
@@ -898,6 +901,18 @@ async function viewSettings() {
       </div>
     </div>
     <div class="panel" style="max-width:640px">
+      <div class="panel-head"><h3>Security</h3></div>
+      <div class="panel-body">
+        <p class="cell-sub" style="margin-top:0">Change your admin password. You'll stay signed in.</p>
+        <div class="form-grid">
+          <div class="field full"><label>Current password</label><input class="input" id="pw_cur" type="password" autocomplete="current-password"></div>
+          <div class="field"><label>New password</label><input class="input" id="pw_new" type="password" autocomplete="new-password"></div>
+          <div class="field"><label>Confirm new password</label><input class="input" id="pw_conf" type="password" autocomplete="new-password"></div>
+        </div>
+        <button class="btn btn-primary" id="savePw">Change password</button>
+      </div>
+    </div>
+    <div class="panel" style="max-width:640px">
       <div class="panel-head"><h3>System</h3></div>
       <div class="panel-body">
         <p class="cell-sub" style="margin-top:0">Re-run the database migration if new tables are ever missing (safe — it only creates what's absent).</p>
@@ -908,8 +923,20 @@ async function viewSettings() {
     await api('settings.php', { method: 'POST', body: {
       broker_rate_pct: +$('#set_rate').value, click_points: +$('#set_cp').value,
       point_value_ngn: +$('#set_pv').value, distributor_sale_bonus_ngn: +$('#set_bonus').value,
+      share_reward_ngn: +$('#set_sharereward').value, max_counted_shares_per_day: +$('#set_sharecap').value,
       min_withdrawal_ngn: +$('#set_min').value } });
     toast('Settings saved', 'ok');
+  });
+  $('#savePw').addEventListener('click', async () => {
+    const cur = $('#pw_cur').value, nw = $('#pw_new').value, conf = $('#pw_conf').value;
+    if (!cur || !nw) { toast('Fill in both password fields', 'err'); return; }
+    if (nw.length < 6) { toast('New password must be at least 6 characters', 'err'); return; }
+    if (nw !== conf) { toast('New passwords do not match', 'err'); return; }
+    try {
+      await api('auth.php?change_password=1', { method: 'POST', body: { current: cur, new: nw } });
+      toast('Password changed', 'ok');
+      $('#pw_cur').value = $('#pw_new').value = $('#pw_conf').value = '';
+    } catch (e) { toast(e.message, 'err'); }
   });
   $('#saveFraud').addEventListener('click', async () => {
     await api('settings.php', { method: 'POST', body: {

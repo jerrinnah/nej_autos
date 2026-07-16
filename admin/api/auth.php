@@ -20,6 +20,25 @@ if (method() === 'POST' && (string)param('logout', '') === '1') {
     json_out(['ok' => true, 'loggedOut' => true]);
 }
 
+// ---- change password (authenticated admin) ----
+if (method() === 'POST' && (string)param('change_password', '') === '1') {
+    $a = require_admin();                    // 401 if not logged in; blocks cross-origin
+    $cur = (string)param('current', '');
+    $new = (string)param('new', '');
+    if ($cur === '' || $new === '') json_err('Current and new password are required.', 422);
+    if (strlen($new) < 6) json_err('New password must be at least 6 characters.', 422);
+
+    $st = db()->prepare('SELECT password_hash FROM admin_users WHERE id = :id LIMIT 1');
+    $st->execute([':id' => $a['id']]);
+    $row = $st->fetch();
+    if (!$row || !password_verify($cur, $row['password_hash'])) {
+        json_err('Current password is incorrect.', 401);
+    }
+    db()->prepare('UPDATE admin_users SET password_hash = :h WHERE id = :id')
+        ->execute([':h' => password_hash($new, PASSWORD_DEFAULT), ':id' => $a['id']]);
+    json_out(['ok' => true, 'changed' => true]);
+}
+
 // ---- session check ----
 if (method() === 'GET') {
     $a = current_admin();

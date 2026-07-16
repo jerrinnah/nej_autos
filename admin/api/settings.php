@@ -17,6 +17,8 @@ $ALLOWED = [
     'min_withdrawal_ngn'        => [0, 100000000],
     'max_click_points_per_link_day' => [0, 100000],
     'click_unlock_cap_pct'      => [0, 100],
+    'share_reward_ngn'          => [0, 100000000],
+    'max_counted_shares_per_day'=> [0, 100],
 ];
 
 if (method() === 'GET') {
