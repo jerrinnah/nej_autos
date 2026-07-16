@@ -68,7 +68,7 @@ json_out(['ok' => true,
         'click_points'     => (int)setting('click_points', '5'),
         'point_value_ngn'  => (int)setting('point_value_ngn', '50'),
         'sale_bonus_ngn'   => (int)setting('distributor_sale_bonus_ngn', '25000'),
-        'share_reward_ngn' => (int)setting('share_reward_ngn', '2500'),
+        'share_reward_ngn' => (int)setting('share_reward_ngn', '800'),
         'min_withdrawal'   => (int)setting('min_withdrawal_ngn', '10000'),
     ],
     'ledger'  => array_map(function ($r) {

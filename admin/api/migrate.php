@@ -39,7 +39,7 @@ try {
     }
     // Defaults for the per-share reward — never overwrite an admin's custom value.
     $ins = db()->prepare("INSERT IGNORE INTO settings (k, v) VALUES (:k, :v)");
-    $ins->execute([':k' => 'share_reward_ngn', ':v' => '2500']);
+    $ins->execute([':k' => 'share_reward_ngn', ':v' => '800']);
     $ins->execute([':k' => 'max_counted_shares_per_day', ':v' => '2']);
 } catch (Throwable $e) {
     json_err('Share-tracking migration failed: ' . $e->getMessage(), 500);

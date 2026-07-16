@@ -82,7 +82,7 @@ if (method() === 'POST' && (string)param('_delete', '') !== '1') {
     $shareId = (int)db()->lastInsertId();
 
     if ($user && $counted) {
-        $reward = (int)setting('share_reward_ngn', '2500');
+        $reward = (int)setting('share_reward_ngn', '800');
         if ($reward > 0) {
             db()->prepare(
                 "INSERT INTO ledger (user_id,type,amount,status,car_id,link_id,week,note)

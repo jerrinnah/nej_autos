@@ -261,7 +261,7 @@ function openShare() {
       '</div>' +
     '</div>' +
     '<div style="margin:1.2rem 1.1rem 1.1rem;padding:.9rem;background:#f7f8fa;border:1px solid #eef0f3;border-radius:14px;">' +
-      '<div style="font-size:.72rem;font-weight:700;color:#8b909b;text-transform:uppercase;letter-spacing:.08em;margin:0 .2rem .7rem;">Share &amp; earn ₦2,500 per share</div>' +
+      '<div style="font-size:.72rem;font-weight:700;color:#8b909b;text-transform:uppercase;letter-spacing:.08em;margin:0 .2rem .7rem;">Share &amp; earn ₦800 per share</div>' +
       '<div id="smopts" style="display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;"></div>' +
       '<div id="smrow" style="display:flex;gap:.5rem;margin-top:.7rem;"></div>' +
     '</div>';
