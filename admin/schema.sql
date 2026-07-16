@@ -104,14 +104,18 @@ CREATE TABLE IF NOT EXISTS `payouts` (
 CREATE TABLE IF NOT EXISTS `shares` (
   `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `partner_id` INT UNSIGNED NULL,
+  `user_id`    INT UNSIGNED NULL,             -- portal user (broker/distributor) who shared
   `car_id`     INT UNSIGNED NULL,
+  `link_id`    INT UNSIGNED NULL,             -- tracked link used, when shared from the portal
   `vehicle`    VARCHAR(200) NOT NULL DEFAULT '',
   `platform`   VARCHAR(30)  NOT NULL DEFAULT 'whatsapp',
   `ref`        VARCHAR(60)  NULL,
+  `counted`    TINYINT      NOT NULL DEFAULT 0, -- 1 = counted toward the daily reward
   `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_share_platform` (`platform`),
-  KEY `idx_share_partner` (`partner_id`)
+  KEY `idx_share_partner` (`partner_id`),
+  KEY `idx_share_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET foreign_key_checks = 1;

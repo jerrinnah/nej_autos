@@ -290,6 +290,15 @@ function settle_sale(int $leadId): void {
             }
         }
     }
+
+    // Unlock this car's pending SHARE rewards for the settling user — a car they
+    // shared has now sold. Mirrors the click-points unlock above; shares are
+    // already capped per day at the source, so no extra cap is applied here.
+    if ($carId) {
+        $pdo->prepare("UPDATE ledger SET status='available'
+                       WHERE user_id=:u AND car_id=:c AND type='share_reward' AND status='pending'")
+            ->execute([':u' => $user['id'], ':c' => $carId]);
+    }
 }
 
 function money_ngn(int $n): string { return '₦' . number_format($n); }

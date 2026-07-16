@@ -287,6 +287,7 @@ function renderBrokerHome(me) {
       ${kpi('Sales won', me.salesWon, `${me.links.count} links shared`, 'rgba(96,165,250,.2)')}
       ${kpi('This week', money(me.week.amount), 'earned this week', 'rgba(245,166,35,.2)')}
       ${kpi('Total clicks', me.links.clicks.toLocaleString(), `${me.links.uniques.toLocaleString()} unique`, 'rgba(96,165,250,.2)')}
+      ${kpi('Shares', (me.shares ? me.shares.total : 0).toLocaleString(), me.shares ? `${me.shares.today}/${me.shares.cap} counted today` : 'shared', 'rgba(167,139,250,.2)')}
     </div>
 
     <div class="panel">
@@ -312,6 +313,7 @@ function renderBrokerHome(me) {
 function ledgerTag(t) {
   const map = {
     click_points: '<span class="pill purple">click</span>',
+    share_reward: '<span class="pill purple">share</span>',
     sale_commission: '<span class="pill amber">commission</span>',
     sale_bonus: '<span class="pill green">sale bonus</span>',
     adjustment: '<span class="pill grey">adjustment</span>',
@@ -538,17 +540,33 @@ function shareModal(link) {
       <div class="copyfield"><input class="input" id="sh_url" readonly value="${attr(url)}"><button class="btn btn-primary btn-sm" id="sh_copy">Copy</button></div>
     </div>
     <div class="share-row">
-      <a class="btn btn-ghost btn-sm" target="_blank" href="${attr(intents.whatsapp)}">💬 WhatsApp</a>
-      <a class="btn btn-ghost btn-sm" target="_blank" href="${attr(intents.facebook)}">👍 Facebook</a>
-      <a class="btn btn-ghost btn-sm" target="_blank" href="${attr(intents.x)}">𝕏 Post</a>
-      <a class="btn btn-ghost btn-sm" target="_blank" href="${attr(intents.telegram)}">✈️ Telegram</a>
+      <a class="btn btn-ghost btn-sm" data-sp="whatsapp" target="_blank" href="${attr(intents.whatsapp)}">💬 WhatsApp</a>
+      <a class="btn btn-ghost btn-sm" data-sp="facebook" target="_blank" href="${attr(intents.facebook)}">👍 Facebook</a>
+      <a class="btn btn-ghost btn-sm" data-sp="x" target="_blank" href="${attr(intents.x)}">𝕏 Post</a>
+      <a class="btn btn-ghost btn-sm" data-sp="telegram" target="_blank" href="${attr(intents.telegram)}">✈️ Telegram</a>
     </div>
-    <p class="cell-sub" style="margin-bottom:0">Clicks so far: <b>${link.clicks || 0}</b> (${link.uniques || 0} unique)</p>
+    <p class="cell-sub" style="margin-bottom:0">Clicks so far: <b>${link.clicks || 0}</b> (${link.uniques || 0} unique). Sharing earns a reward on up to <b>${(store.me && store.me.shares ? store.me.shares.cap : 2)} cars/day</b> — it unlocks when the car sells.</p>
   `, null, null, 'Done');
   $('#sh_copy').addEventListener('click', () => {
     $('#sh_url').select();
     navigator.clipboard?.writeText(url).then(() => toast('Link copied', 'ok'), () => {});
+    recordShare(link, 'copy');
   });
+  $$('.share-row [data-sp]').forEach(a => a.addEventListener('click', () => recordShare(link, a.dataset.sp)));
+}
+
+/* Record a share against the logged-in partner. Non-blocking: never gets in the
+   way of the actual share. The server caps how many shares count per day. */
+async function recordShare(link, platform) {
+  try {
+    const r = await api('shares.php', { method: 'POST', body: {
+      platform,
+      link_id: link.id,
+      car_id: link.car_id,
+      vehicle: `${link.make || ''} ${link.model || ''}`.trim(),
+    }});
+    if (r && r.counted) toast('Share counted — reward pending until the car sells', 'ok');
+  } catch (e) { /* analytics only; ignore failures */ }
 }
 
 /* =========================================================================

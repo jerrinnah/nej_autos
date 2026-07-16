@@ -17,6 +17,18 @@ $lt = $pdo->prepare('SELECT COUNT(*) links, COALESCE(SUM(clicks),0) clicks, COAL
 $lt->execute([':u' => $uid]);
 $links = $lt->fetch();
 
+/* share totals (guarded: shares columns exist only after the v2.1 migration) */
+$shares = ['total' => 0, 'counted' => 0, 'today' => 0];
+try {
+    $shq = $pdo->prepare("SELECT COUNT(*) total,
+            COALESCE(SUM(counted),0) counted,
+            COALESCE(SUM(CASE WHEN DATE(created_at)=CURDATE() THEN counted ELSE 0 END),0) today
+         FROM shares WHERE user_id = :u");
+    $shq->execute([':u' => $uid]);
+    $r = $shq->fetch();
+    if ($r) $shares = ['total' => (int)$r['total'], 'counted' => (int)$r['counted'], 'today' => (int)$r['today']];
+} catch (Throwable $e) { /* not migrated yet → zeros */ }
+
 /* this ISO week's earnings (all ledger movement dated this week) */
 $wk = $pdo->prepare("SELECT COALESCE(SUM(amount),0) amt, COALESCE(SUM(points),0) pts
                      FROM ledger WHERE user_id=:u AND week=:w");
@@ -47,6 +59,8 @@ json_out(['ok' => true,
     ],
     'balance' => $bal,
     'links'   => ['count' => (int)$links['links'], 'clicks' => (int)$links['clicks'], 'uniques' => (int)$links['uniques']],
+    'shares'  => ['total' => $shares['total'], 'counted' => $shares['counted'], 'today' => $shares['today'],
+                  'cap' => (int)setting('max_counted_shares_per_day', '2')],
     'week'    => ['label' => iso_week(), 'amount' => (int)$week['amt'], 'points' => (int)$week['pts']],
     'salesWon' => $salesWon,
     'config'  => [
@@ -54,6 +68,7 @@ json_out(['ok' => true,
         'click_points'     => (int)setting('click_points', '5'),
         'point_value_ngn'  => (int)setting('point_value_ngn', '50'),
         'sale_bonus_ngn'   => (int)setting('distributor_sale_bonus_ngn', '25000'),
+        'share_reward_ngn' => (int)setting('share_reward_ngn', '2500'),
         'min_withdrawal'   => (int)setting('min_withdrawal_ngn', '10000'),
     ],
     'ledger'  => array_map(function ($r) {

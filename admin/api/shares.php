@@ -11,22 +11,88 @@ require __DIR__ . '/_bootstrap.php';
 $id = (int)param('id', 0);
 $PLATFORMS = ['whatsapp', 'facebook', 'x', 'telegram', 'email', 'copy', 'other'];
 
-/* ---- public: record a share event ---- */
+/* ---- record a share event ----
+   Public (marketing site) shares are logged for analytics only. When a portal
+   user is signed in, the share is attributed to them and — up to a daily cap,
+   once per car per day — "counts" and earns a PENDING reward that unlocks when
+   a car they shared sells (see settle_sale). Everything is logged either way. */
 if (method() === 'POST' && (string)param('_delete', '') !== '1') {
     $b = input();
     $platform = strtolower(s($b['platform'] ?? 'other'));
     if (!in_array($platform, $PLATFORMS, true)) $platform = 'other';
+
+    $carId   = (int)($b['car_id'] ?? 0) ?: null;
+    $linkId  = (int)($b['link_id'] ?? 0) ?: null;
+    $vehicle = s($b['vehicle'] ?? '');
+
+    $user    = current_user();          // null for public / marketing-site shares
+    $userId  = null;
+    $ref     = null;
+    $counted = 0;
+
+    if ($user) {
+        // Same-origin guard: block a third-party page from spending the session.
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        $host   = $_SERVER['HTTP_HOST'] ?? '';
+        if ($origin !== '' && parse_url($origin, PHP_URL_HOST) !== $host) {
+            json_err('Cross-origin request blocked.', 403);
+        }
+
+        $userId = (int)$user['id'];
+        $ref    = $user['referral_code'];
+
+        // A supplied link must belong to this user; adopt its car for accuracy.
+        if ($linkId) {
+            $lk = db()->prepare('SELECT car_id FROM tracked_links WHERE id=:l AND user_id=:u LIMIT 1');
+            $lk->execute([':l' => $linkId, ':u' => $userId]);
+            $row = $lk->fetch();
+            if ($row) $carId = (int)$row['car_id']; else $linkId = null;
+        }
+
+        // Counts up to N/day, and at most once per car per day.
+        $cap = (int)setting('max_counted_shares_per_day', '2');
+        $todayCounted = (int)db()->query(
+            "SELECT COUNT(*) FROM shares WHERE user_id=$userId AND counted=1 AND DATE(created_at)=CURDATE()"
+        )->fetchColumn();
+        $carDup = 0;
+        if ($carId) {
+            $cd = db()->prepare("SELECT COUNT(*) FROM shares
+                                 WHERE user_id=:u AND car_id=:c AND counted=1 AND DATE(created_at)=CURDATE()");
+            $cd->execute([':u' => $userId, ':c' => $carId]);
+            $carDup = (int)$cd->fetchColumn();
+        }
+        if ($todayCounted < $cap && $carDup === 0) $counted = 1;
+    } else {
+        $ref = s($b['ref'] ?? '') ?: null;
+    }
+
     db()->prepare(
-        'INSERT INTO shares (partner_id, car_id, vehicle, platform, ref)
-         VALUES (:pid, :cid, :veh, :plat, :ref)'
+        'INSERT INTO shares (partner_id, user_id, car_id, link_id, vehicle, platform, ref, counted)
+         VALUES (:pid, :uid, :cid, :lid, :veh, :plat, :ref, :cnt)'
     )->execute([
         ':pid'  => (int)($b['partner_id'] ?? 0) ?: null,
-        ':cid'  => (int)($b['car_id'] ?? 0) ?: null,
-        ':veh'  => s($b['vehicle'] ?? ''),
+        ':uid'  => $userId,
+        ':cid'  => $carId,
+        ':lid'  => $linkId,
+        ':veh'  => $vehicle,
         ':plat' => $platform,
-        ':ref'  => s($b['ref'] ?? '') ?: null,
+        ':ref'  => $ref,
+        ':cnt'  => $counted,
     ]);
-    json_out(['ok' => true, 'id' => (int)db()->lastInsertId(), 'created' => true], 201);
+    $shareId = (int)db()->lastInsertId();
+
+    if ($user && $counted) {
+        $reward = (int)setting('share_reward_ngn', '2500');
+        if ($reward > 0) {
+            db()->prepare(
+                "INSERT INTO ledger (user_id,type,amount,status,car_id,link_id,week,note)
+                 VALUES (:u,'share_reward',:a,'pending',:c,:l,:w,:n)"
+            )->execute([':u' => $userId, ':a' => $reward, ':c' => $carId, ':l' => $linkId,
+                        ':w' => iso_week(), ':n' => 'Share reward — ' . ($vehicle ?: 'car')]);
+        }
+    }
+
+    json_out(['ok' => true, 'id' => $shareId, 'counted' => (bool)$counted, 'created' => true], 201);
 }
 
 /* ---- admin below ---- */
