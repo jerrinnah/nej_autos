@@ -1,36 +1,16 @@
 ---
+# Manual deploy: cPanel → Git Version Control → Update from Remote → Deploy
+# HEAD Commit. This is the fallback for when GitHub Actions is unavailable;
+# .github/workflows/deploy.yml does the same job automatically on push to main.
+#
+# The whole repo is copied except the excludes below, so adding a file never
+# means editing this list again. tar (not rsync) because it is guaranteed to
+# exist on shared hosting, and extracting merges into public_html the same way
+# the old per-file `cp` did — it never deletes anything already on the server.
 deployment:
   tasks:
-    # $HOME is set to /home/<your-cpanel-user> automatically when cPanel runs
-    # the deploy, so this works for the primary domain without hardcoding a name.
-    # For an addon/subdomain, change to e.g. $HOME/nejautos.com/ instead.
     - export DEPLOYPATH=$HOME/public_html/
     - /bin/mkdir -p $DEPLOYPATH
-    - /bin/cp .htaccess             $DEPLOYPATH
-    - /bin/cp index.html            $DEPLOYPATH
-    - /bin/cp styles.css            $DEPLOYPATH
-    - /bin/cp portal.html           $DEPLOYPATH
-    - /bin/cp portal.css            $DEPLOYPATH
-    - /bin/cp portal.js             $DEPLOYPATH
-    - /bin/cp car.html              $DEPLOYPATH
-    - /bin/cp car.php               $DEPLOYPATH
-    - /bin/cp car.js                $DEPLOYPATH
-    - /bin/cp manifest.webmanifest  $DEPLOYPATH
-    - /bin/cp sw.js                 $DEPLOYPATH
-    - /bin/cp icon.svg              $DEPLOYPATH
-    # --- Admin control centre (PHP + MySQL) ---
-    # Copy the whole admin tree. This never touches the server-only config.php
-    # (it isn't in git) or existing uploads (cp merges, it doesn't delete).
-    - /bin/mkdir -p $DEPLOYPATH/admin/api $DEPLOYPATH/admin/uploads/cars
-    - /bin/cp -R admin/api           $DEPLOYPATH/admin/
-    - /bin/cp admin/index.html       $DEPLOYPATH/admin/
-    - /bin/cp admin/admin.css        $DEPLOYPATH/admin/
-    - /bin/cp admin/admin.js         $DEPLOYPATH/admin/
-    - /bin/cp admin/schema.sql       $DEPLOYPATH/admin/
-    - /bin/cp admin/schema_v2.sql    $DEPLOYPATH/admin/
-    - /bin/cp admin/config.sample.php $DEPLOYPATH/admin/
-    - /bin/cp admin/README.md        $DEPLOYPATH/admin/
-    - /bin/cp admin/.htaccess        $DEPLOYPATH/admin/
-    - /bin/cp admin/uploads/.htaccess $DEPLOYPATH/admin/uploads/
-    # Make the uploads folder writable so photo uploads can be saved.
+    - /bin/tar -cf - --exclude='.git*' --exclude='.github' --exclude='.vercel' --exclude='.cpanel.yml' --exclude='.DS_Store' --exclude='admin/config.php' --exclude='admin/uploads/cars' --exclude='admin/uploads/site' . | /bin/tar -xf - -C $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATH/admin/uploads/cars $DEPLOYPATH/admin/uploads/site
     - /bin/chmod -R 755 $DEPLOYPATH/admin/uploads

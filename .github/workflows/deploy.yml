@@ -1,22 +1,27 @@
 name: Deploy to cPanel
 
-# Auto-deploys the site to cPanel over secure FTPS on every push to main.
-# No more manual "Update from Remote / Deploy HEAD Commit" in cPanel.
+# Uploads the site to cPanel over FTPS on every push to main.
 #
-# Setup (one time) — add these repo secrets under
-#   GitHub → Settings → Secrets and variables → Actions → New repository secret:
-#     FTP_SERVER    e.g. ftp.nejautos.com  (or the server hostname / IP from cPanel)
-#     FTP_USERNAME  your cPanel / FTP account username
-#     FTP_PASSWORD  the FTP account password
+# ── The one thing that goes wrong ────────────────────────────────────────────
+# FTP_SERVER must be the ORIGIN server, never the domain. nejautos.com and all
+# of its subdomains (ftp., cpanel., mail.) sit behind Cloudflare, which proxies
+# HTTP only — aim FTP at any of them and port 21 hangs until it times out.
+# This account's origin is  host76.registrar-servers.com  (198.54.126.175).
+# You can always re-derive it: cPanel → "Shared IP Address", or the ip4: values
+# in the domain's SPF record.
 #
-# server-dir below assumes the FTP login lands in the account home directory,
-# so files go into public_html/. If your FTP account is already scoped to the
-# web root, change server-dir to "./".
+# Repo secrets (Settings → Secrets and variables → Actions):
+#   FTP_SERVER    host76.registrar-servers.com
+#   FTP_USERNAME  cPanel / FTP account username
+#   FTP_PASSWORD  that account's password
+#
+# The whole repo is uploaded apart from the excludes at the bottom, so adding a
+# file never means editing this workflow.
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}   # lets you trigger a deploy manually from the Actions tab
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-cpanel
@@ -26,8 +31,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      # Turns the failure mode above into one actionable line instead of a
+      # sixty-line ETIMEDOUT stack trace.
+      - name: Preflight — can we even reach the FTP host?
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+        run: |
+          if [ -z "$FTP_SERVER" ]; then
+            echo "::error::FTP_SERVER secret is not set."
+            exit 1
+          fi
+          echo "FTP_SERVER = $FTP_SERVER"
+          getent hosts "$FTP_SERVER" || echo "(does not resolve)"
+          if nc -z -w 10 "$FTP_SERVER" 21; then
+            echo "OK — port 21 is open."
+          else
+            echo "::error::$FTP_SERVER is not reachable on port 21. If it resolves to a Cloudflare address (104.x / 172.6x / 172.7x) that is the cause: Cloudflare does not proxy FTP. Point FTP_SERVER at the origin server — for this account, host76.registrar-servers.com."
+            exit 1
+          fi
 
       - name: Deploy via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -39,13 +62,17 @@ jobs:
           port: 21
           local-dir: ./
           server-dir: public_html/
-          # NEVER touch these on the server (user data + server-only secrets):
+          # Never overwrite server-only secrets or visitor-uploaded media.
+          # admin/uploads/.htaccess is deliberately NOT excluded — the folder's
+          # no-execute guard must ship.
           exclude: |
             **/.git*
             **/.git*/**
             .github/**
             .vercel/**
-            admin/config.php
-            admin/uploads/**
             .cpanel.yml
             .gitignore
+            **/.DS_Store
+            admin/config.php
+            admin/uploads/cars/**
+            admin/uploads/site/**
