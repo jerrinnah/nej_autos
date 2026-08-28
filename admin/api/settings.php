@@ -19,6 +19,12 @@ $ALLOWED = [
     'click_unlock_cap_pct'      => [0, 100],
     'share_reward_ngn'          => [0, 100000000],
     'max_counted_shares_per_day'=> [0, 100],
+    'share_unlock_cap_pct'      => [0, 100],
+    'leaderboard_pool_ngn'      => [0, 100000000],
+    'leaderboard_winners'       => [0, 100],
+    'leaderboard_split_weighted'=> [0, 1],
+    'leaderboard_min_clicks'    => [0, 100000],
+    'hero_autoplay_ms'          => [0, 60000],
 ];
 
 if (method() === 'GET') {

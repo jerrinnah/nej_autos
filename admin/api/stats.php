@@ -27,7 +27,35 @@ $partnersActive  = $one("SELECT COUNT(*) FROM partners WHERE status='Active'");
 $partnersPending = $one("SELECT COUNT(*) FROM partners WHERE status='Pending'");
 
 $sharesTotal = $one('SELECT COUNT(*) FROM shares');
+$sharesToday = $one("SELECT COUNT(*) FROM shares WHERE DATE(created_at)=CURDATE()");
+$sharesWeek  = $one("SELECT COUNT(*) FROM shares WHERE created_at >= (CURDATE() - INTERVAL 6 DAY)");
 $attributed  = $one("SELECT COUNT(*) FROM leads WHERE via_share IS NOT NULL AND via_share <> ''");
+
+// last 14 days of share volume (daily bars) — always one row per day, zero-filled
+$rawDaily = $pdo->query(
+    "SELECT DATE(created_at) d, COUNT(*) c FROM shares
+     WHERE created_at >= (CURDATE() - INTERVAL 13 DAY)
+     GROUP BY DATE(created_at)")->fetchAll(PDO::FETCH_KEY_PAIR);
+$sharesDaily = [];
+for ($i = 13; $i >= 0; $i--) {
+    $d = date('Y-m-d', strtotime("-$i day"));
+    $sharesDaily[] = ['d' => $d, 'c' => (int)($rawDaily[$d] ?? 0)];
+}
+
+/* --------- portal signups (users table may not exist pre-migration) ------- */
+$signups = ['pending' => 0, 'today' => 0, 'week' => 0, 'recent' => []];
+try {
+    $signups['pending'] = $one("SELECT COUNT(*) FROM users WHERE status='Pending'");
+    $signups['today']   = $one("SELECT COUNT(*) FROM users WHERE DATE(created_at)=CURDATE()");
+    $signups['week']    = $one("SELECT COUNT(*) FROM users WHERE created_at >= (CURDATE() - INTERVAL 6 DAY)");
+    $rc = $pdo->query(
+        "SELECT id, name, email, role, status, created_at
+         FROM users ORDER BY id DESC LIMIT 12")->fetchAll();
+    $signups['recent'] = array_map(fn($r) => [
+        'id' => (int)$r['id'], 'name' => $r['name'], 'email' => $r['email'],
+        'role' => $r['role'], 'status' => $r['status'], 'created_at' => $r['created_at'],
+    ], $rc);
+} catch (Throwable $e) { /* users table not migrated yet — leave defaults */ }
 
 $payoutPaid    = (int)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM payouts WHERE status='Paid'")->fetchColumn();
 $payoutPending = (int)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM payouts WHERE status='Pending'")->fetchColumn();
@@ -56,7 +84,9 @@ json_out(['ok' => true, 'stats' => [
     'leads'     => ['total' => $leadsTotal, 'open' => $leadsOpen, 'won' => $leadsWon, 'new' => $leadsNew,
                     'salesValue' => $salesValue, 'conversion' => $conv, 'attributed' => $attributed],
     'partners'  => ['total' => $partnersTotal, 'active' => $partnersActive, 'pending' => $partnersPending],
-    'shares'    => ['total' => $sharesTotal, 'byPlatform' => $sharesByPlatform],
+    'shares'    => ['total' => $sharesTotal, 'today' => $sharesToday, 'week' => $sharesWeek,
+                    'byPlatform' => $sharesByPlatform, 'daily' => $sharesDaily],
+    'signups'   => $signups,
     'payouts'   => ['paid' => $payoutPaid, 'pending' => $payoutPending],
     'leadsByStatus' => $leadsByStatus,
     'bodyMix'   => $bodyMix,

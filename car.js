@@ -77,7 +77,6 @@ function specs() {
   return [
     specCell('Fuel', car.ev ? '⚡ Electric' : '⛽ Petrol'),
     specCell('Transmission', 'Automatic'),
-    specCell('Mileage', car.mileage ? car.mileage.toLocaleString() + ' KM' : '—'),
     specCell('Body', esc(car.body)),
     specCell('Year', esc(car.year)),
     specCell('Condition', '✓ Certified'),
@@ -229,7 +228,6 @@ function shareIntent(key, url, text) {
 function sharePills() {
   const p = [];
   p.push(`<span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:600;color:#4b5563;border:1px solid #e7e9ee;border-radius:999px;padding:.26rem .65rem;background:#fff;"><span style="width:8px;height:8px;border-radius:50%;background:${car.ev ? '#22c55e' : '#3b82f6'}"></span>${esc(car.body)}</span>`);
-  if (car.mileage) p.push(`<span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:600;color:#4b5563;border:1px solid #e7e9ee;border-radius:999px;padding:.26rem .65rem;background:#fff;">📍 ${car.mileage.toLocaleString()} KM</span>`);
   p.push(`<span style="display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;font-weight:600;color:#4b5563;border:1px solid #e7e9ee;border-radius:999px;padding:.26rem .65rem;background:#fff;">${car.ev ? '⚡ Electric' : '⚙️ Automatic'}</span>`);
   return p.join('');
 }

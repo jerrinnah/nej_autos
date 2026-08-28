@@ -15,3 +15,5 @@
 admin/config.php
 admin/uploads/cars/*
 !admin/uploads/cars/.gitkeep
+admin/uploads/site/*
+!admin/uploads/site/.gitkeep

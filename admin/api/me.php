@@ -52,6 +52,20 @@ $wd->execute([':u' => $uid]);
 
 $rate = $user['commission_pct'] !== null ? (float)$user['commission_pct'] : (float)setting('broker_rate_pct', '12');
 
+/* saved payout details (self-service, editable in the portal Settings tab) */
+$payout = ['bank_name' => '', 'account_number' => '', 'account_name' => '', 'has_payout' => false];
+try {
+    $pq = $pdo->prepare('SELECT bank_name,account_number,account_name FROM users WHERE id=:u');
+    $pq->execute([':u' => $uid]);
+    if ($pr = $pq->fetch()) {
+        $payout = [
+            'bank_name' => $pr['bank_name'], 'account_number' => $pr['account_number'],
+            'account_name' => $pr['account_name'],
+            'has_payout' => ($pr['account_number'] !== '' && $pr['bank_name'] !== ''),
+        ];
+    }
+} catch (Throwable $e) { /* columns added by a later migration → leave blank */ }
+
 json_out(['ok' => true,
     'user' => [
         'id' => $uid, 'name' => $user['name'], 'email' => $user['email'],
@@ -63,6 +77,7 @@ json_out(['ok' => true,
                   'cap' => (int)setting('max_counted_shares_per_day', '2')],
     'week'    => ['label' => iso_week(), 'amount' => (int)$week['amt'], 'points' => (int)$week['pts']],
     'salesWon' => $salesWon,
+    'payout'  => $payout,
     'config'  => [
         'broker_rate_pct'  => $rate,
         'click_points'     => (int)setting('click_points', '5'),

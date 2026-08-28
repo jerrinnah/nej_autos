@@ -144,12 +144,14 @@ function tabsFor(role) {
     { key: 'inventory', label: '🚗 Share Cars' },
     { key: 'links',     label: '🔗 My Links' },
     { key: 'earnings',  label: '💰 My Money' },
+    { key: 'settings',  label: '⚙️ Settings' },
   ];
   return [
     { key: 'dashboard', label: 'Dashboard' },
     { key: 'inventory', label: 'Inventory' },
     { key: 'links',     label: 'My Links' },
     { key: 'earnings',  label: 'Commission' },
+    { key: 'settings',  label: 'Settings' },
   ];
 }
 
@@ -187,6 +189,7 @@ async function navigate(tab) {
     if (tab === 'inventory') await viewInventory();
     if (tab === 'links')     await viewLinks();
     if (tab === 'earnings')  await viewEarnings();
+    if (tab === 'settings')  await viewSettings();
     renderTabs();
   } catch (e) {
     if (e.status === 401) { showAuth('login', 'Your session expired — please sign in again.'); return; }
@@ -261,6 +264,7 @@ function actItem(l) {
   let icon = '👆', text = 'Someone clicked your link';
   if (l.type === 'sale_bonus') { icon = '🎉'; text = 'A car you shared sold — bonus!'; }
   else if (l.type === 'sale_commission') { icon = '💰'; text = 'Commission earned'; }
+  else if (l.type === 'leaderboard_bonus') { icon = '🏆'; text = l.note || 'Top-sharer bonus'; }
   else if (l.type === 'adjustment') { icon = '⚙️'; text = l.note || 'Adjustment'; }
   const amt = l.amount ? '+' + money(l.amount) : '';
   const tag = l.status === 'available'
@@ -316,6 +320,7 @@ function ledgerTag(t) {
     share_reward: '<span class="pill purple">share</span>',
     sale_commission: '<span class="pill amber">commission</span>',
     sale_bonus: '<span class="pill green">sale bonus</span>',
+    leaderboard_bonus: '<span class="pill green">top-sharer bonus</span>',
     adjustment: '<span class="pill grey">adjustment</span>',
   };
   return map[t] || `<span class="pill grey">${esc(t)}</span>`;
@@ -349,7 +354,7 @@ function carCard(c, link) {
       ${media}
       <div class="car-body">
         <h4>${esc(c.make)} ${esc(c.model)}</h4>
-        <div class="yr">${esc(c.year)} · ${esc(c.body)} · ${c.mileage ? (+c.mileage).toLocaleString() + ' km' : 'New'}</div>
+        <div class="yr">${esc(c.year)} · ${esc(c.body)}</div>
         <div class="price">${money(c.price)}</div>
       </div>
       <div class="car-foot">
@@ -506,13 +511,89 @@ function wdPill(s) {
   return `<span class="pill ${m[s] || 'grey'}">${esc(s)}</span>`;
 }
 
+/* =========================================================================
+   Settings — profile + payout details (self-service)
+   ========================================================================= */
+async function viewSettings() {
+  const [p, me] = await Promise.all([api('profile.php'), api('me.php')]);
+  store.me = me;
+  const pf = p.profile;
+  const b = me.balance, min = me.config.min_withdrawal;
+  const ready = b.withdrawable >= min;
+
+  $('#view').innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>💳 Payout details</h3>
+        <div class="spacer"></div>
+        ${pf.has_payout ? '<span class="pill green">saved</span>' : '<span class="pill amber">add your account</span>'}
+      </div>
+      <div class="panel-body">
+        <div class="banner ${ready ? '' : 'amber'}"><span>${ready ? '✅' : '💡'}</span><div>
+          ${ready
+            ? `You have <b>${money(b.withdrawable)}</b> ready. Make sure your account details below are correct, then head to <b>${me.user.role === 'distributor' ? 'My Money' : 'Commission'}</b> to withdraw.`
+            : `Add your account number now so you're ready. Payout <b>unlocks automatically</b> once your balance reaches <b>${money(min)}</b> — which happens when a car you shared is sold.`}
+        </div></div>
+        <div class="form-grid">
+          <div class="field"><label>Bank name</label><input class="input" id="pf_bank" value="${attr(pf.bank_name)}" placeholder="e.g. GTBank"></div>
+          <div class="field"><label>Account number</label><input class="input" id="pf_acct" inputmode="numeric" value="${attr(pf.account_number)}" placeholder="10-digit NUBAN"></div>
+          <div class="field full"><label>Account name (must match the bank account)</label><input class="input" id="pf_acctname" value="${attr(pf.account_name)}" placeholder="e.g. ${attr(pf.name || 'Your full name')}"></div>
+        </div>
+        <button class="btn btn-primary" id="pf_savePay">Save payout details</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>👤 Profile</h3></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field"><label>Name</label><input class="input" value="${attr(pf.name)}" disabled></div>
+          <div class="field"><label>Email</label><input class="input" value="${attr(pf.email)}" disabled></div>
+          <div class="field"><label>Phone</label><input class="input" id="pf_phone" value="${attr(pf.phone)}" placeholder="Phone number"></div>
+          <div class="field"><label>Company (optional)</label><input class="input" id="pf_company" value="${attr(pf.company)}" placeholder="Business name"></div>
+        </div>
+        <p class="cell-sub">Your referral code <b>${esc(pf.referral_code)}</b> and account type can't be changed here — contact NEJ Autos if they're wrong.</p>
+        <button class="btn btn-ghost" id="pf_saveProfile">Save profile</button>
+      </div>
+    </div>`;
+
+  $('#pf_savePay').addEventListener('click', async (e) => {
+    const acct = $('#pf_acct').value.replace(/\D+/g, '');
+    if (acct && (acct.length < 5 || acct.length > 20)) { toast('Enter a valid account number (digits only).', 'err'); return; }
+    e.target.disabled = true;
+    try {
+      await api('profile.php', { method: 'POST', body: {
+        bank_name: $('#pf_bank').value.trim(),
+        account_number: acct,
+        account_name: $('#pf_acctname').value.trim(),
+      }});
+      toast('Payout details saved', 'ok'); navigate('settings');
+    } catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
+  });
+
+  $('#pf_saveProfile').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try {
+      await api('profile.php', { method: 'POST', body: {
+        phone: $('#pf_phone').value.trim(), company: $('#pf_company').value.trim() }});
+      toast('Profile saved', 'ok'); e.target.disabled = false;
+    } catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
+  });
+}
+
 function withdrawModal(max, min) {
+  const pay = (store.me && store.me.payout) || {};
+  const saved = pay.has_payout
+    ? [pay.bank_name, pay.account_number, pay.account_name].filter(Boolean).join(' · ')
+    : '';
   openModal('Request withdrawal', `
     <p class="cell-sub" style="margin-top:0">Available: <b style="color:var(--green)">${money(max)}</b></p>
     <div class="field"><label>Amount (₦)</label><input class="input" id="w_amt" type="number" min="${min}" max="${max}" value="${max}"></div>
     <div class="field"><label>Payout method</label>
       <select class="input" id="w_method"><option>Bank transfer</option><option>Mobile money</option><option>Other</option></select></div>
-    <div class="field"><label>Account details</label><textarea class="input" id="w_detail" placeholder="Bank name, account number, account name"></textarea></div>
+    <div class="field"><label>Account details</label><textarea class="input" id="w_detail" placeholder="Bank name, account number, account name">${esc(saved)}</textarea></div>
+    ${saved
+      ? `<p class="cell-sub" style="margin:.2rem 0 0">Pulled from your saved payout details — edit above or in <b>Settings</b> if anything changed.</p>`
+      : `<p class="cell-sub" style="margin:.2rem 0 0">💡 Tip: save your account number in <b>Settings</b> so it fills in automatically next time.</p>`}
   `, 'Submit request', async () => {
     const amount = +$('#w_amt').value, method = $('#w_method').value, detail = $('#w_detail').value.trim();
     if (!detail) { toast('Enter your account details.', 'err'); return false; }

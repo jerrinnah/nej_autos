@@ -37,15 +37,29 @@ try {
     if (!$hasCol('shares', 'counted')) {
         db()->exec("ALTER TABLE shares ADD COLUMN counted TINYINT NOT NULL DEFAULT 0");
     }
+    // Self-service payout details on the user profile (added Settings tab).
+    if (!$hasCol('users', 'account_number')) {
+        db()->exec("ALTER TABLE users
+                    ADD COLUMN bank_name VARCHAR(120) NOT NULL DEFAULT '' AFTER commission_pct,
+                    ADD COLUMN account_number VARCHAR(40) NOT NULL DEFAULT '' AFTER bank_name,
+                    ADD COLUMN account_name VARCHAR(160) NOT NULL DEFAULT '' AFTER account_number");
+    }
     // Defaults for the per-share reward — never overwrite an admin's custom value.
     $ins = db()->prepare("INSERT IGNORE INTO settings (k, v) VALUES (:k, :v)");
     $ins->execute([':k' => 'share_reward_ngn', ':v' => '800']);
     $ins->execute([':k' => 'max_counted_shares_per_day', ':v' => '2']);
+    $ins->execute([':k' => 'share_unlock_cap_pct', ':v' => '5']);
+    $ins->execute([':k' => 'leaderboard_pool_ngn', ':v' => '0']);
+    $ins->execute([':k' => 'leaderboard_winners', ':v' => '5']);
+    $ins->execute([':k' => 'leaderboard_split_weighted', ':v' => '1']);
+    $ins->execute([':k' => 'leaderboard_min_clicks', ':v' => '1']);
+    $ins->execute([':k' => 'hero_autoplay_ms', ':v' => '6000']);
 } catch (Throwable $e) {
     json_err('Share-tracking migration failed: ' . $e->getMessage(), 500);
 }
 
-$tables = ['users', 'tracked_links', 'link_clicks', 'ledger', 'withdrawals', 'settings', 'shares'];
+$tables = ['users', 'tracked_links', 'link_clicks', 'ledger', 'withdrawals', 'settings', 'shares',
+           'site_content', 'slides'];
 $report = [];
 foreach ($tables as $t) {
     $report[$t] = (int)db()->query("SELECT COUNT(*) FROM `$t`")->fetchColumn();
