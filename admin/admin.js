@@ -53,8 +53,43 @@ function toast(msg, kind = '') {
 }
 
 /* -------------------------------- state --------------------------------- */
-const store = { admin: null, cars: [], leads: [], partners: [], payouts: [], shares: [], stats: null };
+const store = { admin: null, cars: [], leads: [], partners: [], payouts: [], shares: [], stats: null,
+  notif: { pending: 0, today: 0, sharesToday: 0, recent: [] } };
 let currentView = 'overview';
+
+/* Notifications — the "seen" watermark is the highest signup id the admin has
+   opened. Kept in localStorage so the bell is per-device, no server state. */
+const SEEN_KEY = 'nej_admin_seen_signup';
+function seenSignupId() { return +(localStorage.getItem(SEEN_KEY) || 0); }
+function markSignupsSeen() {
+  const top = store.notif.recent.reduce((m, s) => Math.max(m, s.id), 0);
+  if (top) localStorage.setItem(SEEN_KEY, String(top));
+}
+function unreadSignups() {
+  const seen = seenSignupId();
+  return store.notif.recent.filter(s => s.id > seen).length;
+}
+async function loadNotifs() {
+  try {
+    const r = await api('stats.php');
+    store.stats = r.stats;
+    const g = r.stats.signups || {};
+    store.notif = {
+      pending: g.pending || 0, today: g.today || 0,
+      sharesToday: (r.stats.shares && r.stats.shares.today) || 0,
+      recent: g.recent || [],
+    };
+  } catch { /* not configured / not migrated — leave the empty defaults */ }
+}
+function timeAgo(ts) {
+  const then = new Date((ts || '').replace(' ', 'T'));
+  if (isNaN(then)) return '';
+  const s = Math.max(0, (Date.now() - then.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
 
 /* =========================================================================
    Auth
@@ -139,17 +174,20 @@ async function logout() {
 const NAV = [
   { key: 'overview',    label: 'Overview',    ic: '📊' },
   { key: 'inventory',   label: 'Inventory',   ic: '🚗' },
+  { key: 'content',     label: 'Website',     ic: '🎨' },
   { key: 'leads',       label: 'Leads',       ic: '📥' },
   { key: 'accounts',    label: 'Accounts',    ic: '👥' },
   { key: 'withdrawals', label: 'Withdrawals', ic: '🏦' },
   { key: 'partners',    label: 'Partners',    ic: '🤝' },
   { key: 'payouts',     label: 'Payouts',     ic: '💸' },
   { key: 'shares',      label: 'Shares',      ic: '🔗' },
+  { key: 'leaderboard', label: 'Top sharers', ic: '🏆' },
   { key: 'settings',    label: 'Settings',    ic: '⚙️' },
 ];
 
-function showApp() {
+async function showApp() {
   $('#auth').hidden = true; $('#app').hidden = false;
+  await loadNotifs();
   renderSidebar();
   navigate(currentView);
 }
@@ -158,10 +196,16 @@ function renderSidebar() {
   const counts = {
     inventory: store.cars.length || '',
     leads: store.leads.filter(l => l.status === 'New').length || '',
+    accounts: store.notif.pending || '',
     partners: store.partners.length || '',
   };
+  const unread = unreadSignups();
   $('#sidebar').innerHTML = `
-    <div class="brand"><div class="mark">NJ</div><div><b>NEJ Autos</b><span>Admin</span></div></div>
+    <div class="brand">
+      <div class="mark">NJ</div><div><b>NEJ Autos</b><span>Admin</span></div>
+      <div class="spacer"></div>
+      <button class="bell" data-bell title="Notifications">🔔${unread ? `<span class="bell-dot">${unread > 9 ? '9+' : unread}</span>` : ''}</button>
+    </div>
     <nav class="nav">
       ${NAV.map(n => `
         <div class="nav-item ${n.key === currentView ? 'active' : ''}" data-nav="${n.key}">
@@ -179,6 +223,49 @@ function renderSidebar() {
     </div>`;
   $$('[data-nav]').forEach(el => el.addEventListener('click', () => navigate(el.dataset.nav)));
   $('[data-logout]').addEventListener('click', logout);
+  $('[data-bell]').addEventListener('click', notifModal);
+}
+
+function notifModal() {
+  const list = store.notif.recent;
+  const seen = seenSignupId();
+  const roledot = r => r === 'broker' ? '<span class="pill amber">broker</span>' : '<span class="pill purple">distributor</span>';
+  const stColor = { Active: 'green', Pending: 'amber', Suspended: 'red' };
+  openModal('Notifications', `
+    <div class="notif-summary">
+      <div><b>${store.notif.pending}</b><span>awaiting approval</span></div>
+      <div><b>${store.notif.today}</b><span>signups today</span></div>
+      <div><b>${store.notif.sharesToday}</b><span>shares today</span></div>
+    </div>
+    <h4 class="notif-h">Recent signups</h4>
+    ${list.length ? `<div class="notif-list">${list.map(s => `
+      <div class="notif-row ${s.id > seen ? 'is-new' : ''}">
+        <span class="row-emoji">${esc(initials(s.name))}</span>
+        <div class="notif-main">
+          <b>${esc(s.name)}</b> ${roledot(s.role)}
+          ${s.id > seen ? '<span class="pill blue">new</span>' : ''}
+          <div class="cell-sub">${esc(s.email)} · ${esc(timeAgo(s.created_at))}</div>
+        </div>
+        <span class="pill ${stColor[s.status] || 'grey'}">${esc(s.status)}</span>
+        ${s.status === 'Pending' ? `<button class="btn btn-primary btn-sm" data-napprove="${s.id}">Approve</button>` : ''}
+      </div>`).join('')}</div>`
+      : `<div class="empty" style="padding:1.5rem"><div class="em">🔔</div>No signups yet.</div>`}
+  `, list.some(s => s.status === 'Pending') ? 'Review in Accounts' : '', () => {
+    closeModal(); navigate('accounts'); return true;
+  }, 'Close');
+
+  $$('[data-napprove]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      await api(`users.php?id=${b.dataset.napprove}`, { method: 'POST', body: { status: 'Active' } });
+      toast('Account approved', 'ok');
+      await loadNotifs(); closeModal(); renderSidebar();
+      if (currentView === 'accounts') navigate('accounts');
+    } catch (e) { toast(e.message, 'err'); b.disabled = false; }
+  }));
+
+  markSignupsSeen();
+  renderSidebar();
 }
 
 function setTopbar(title, sub, actions = '') {
@@ -196,10 +283,12 @@ async function navigate(key) {
   try {
     if (key === 'overview')  await viewOverview();
     if (key === 'inventory') await viewInventory();
+    if (key === 'content')   await viewContent();
     if (key === 'leads')     await viewLeads();
     if (key === 'partners')  await viewPartners();
     if (key === 'payouts')   await viewPayouts();
     if (key === 'shares')    await viewShares();
+    if (key === 'leaderboard') await viewLeaderboard();
     if (key === 'accounts')  await viewAccounts();
     if (key === 'withdrawals') await viewWithdrawals();
     if (key === 'settings')  await viewSettings();
@@ -215,6 +304,11 @@ async function navigate(key) {
 async function viewOverview() {
   const r = await api('stats.php');
   const s = store.stats = r.stats;
+  // keep the bell / Accounts badge in sync with this fresh pull
+  const g = s.signups || {};
+  store.notif = { pending: g.pending || 0, today: g.today || 0,
+    sharesToday: (s.shares && s.shares.today) || 0, recent: g.recent || [] };
+  renderSidebar();
   setTopbar('Overview', 'Everything at a glance — live from your database.');
 
   const kpi = (lbl, val, meta, glow) =>
@@ -234,7 +328,7 @@ async function viewOverview() {
       ${kpi('Open leads', s.leads.open, `${s.leads.new} new · ${s.leads.attributed} via share links`, 'rgba(96,165,250,.2)')}
       ${kpi('Partners', s.partners.total, `${s.partners.active} active · ${s.partners.pending} pending`, 'rgba(167,139,250,.2)')}
       ${kpi('Payouts pending', kmoney(s.payouts.pending), `${kmoney(s.payouts.paid)} paid to date`, 'rgba(248,113,113,.2)')}
-      ${kpi('Total shares', s.shares.total, `share-to-earn activity`, 'rgba(245,166,35,.2)')}
+      ${kpi('Shares today', s.shares.today ?? 0, `${s.shares.week ?? 0} in the last 7 days · ${s.shares.total} all-time`, 'rgba(245,166,35,.2)')}
     </div>
 
     <div class="grid-2">
@@ -289,6 +383,21 @@ async function viewOverview() {
               <span class="v">${b.c}</span></div>`).join('')}
           </div>` : `<div class="empty" style="padding:1.5rem">No available stock.</div>`}
         </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Shares per day — last 14 days</h3><div class="spacer"></div><span class="cell-sub">${s.shares.today ?? 0} today</span></div>
+      <div class="panel-body">
+        ${(s.shares.daily && s.shares.daily.some(d => d.c > 0)) ? (() => {
+          const daily = s.shares.daily, dMax = Math.max(1, ...daily.map(d => d.c));
+          return `<div class="spark">
+              ${daily.map(d => `<div class="s" style="height:${Math.max(6, d.c / dMax * 100)}%" title="${esc(d.d)} · ${d.c} share${d.c === 1 ? '' : 's'}"></div>`).join('')}
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:.5rem;font-size:.72rem;color:var(--faint)">
+              ${daily.map((d, i) => (i % 2 === 0) ? `<span>${esc(d.d.slice(5))}</span>` : '<span></span>').join('')}
+            </div>`;
+        })() : `<div class="empty" style="padding:1.5rem">No shares in the last 14 days.</div>`}
       </div>
     </div>`;
 }
@@ -703,7 +812,9 @@ function payoutModal() {
 async function viewShares() {
   const r = await api('shares.php');
   store.shares = r.shares;
-  setTopbar('Shares', `${store.shares.length} share events logged`);
+  const today = new Date().toISOString().slice(0, 10);
+  const todayCount = store.shares.filter(sh => sh.date === today).length;
+  setTopbar('Shares', `${todayCount} today · ${store.shares.length} share events logged`);
   const platIcon = { whatsapp: '💬', facebook: '👍', x: '𝕏', telegram: '✈️', email: '✉️', copy: '🔗', other: '•' };
   $('#view').innerHTML = `
     <div class="panel"><div class="tbl-wrap">
@@ -725,6 +836,84 @@ async function viewShares() {
     await api(`shares.php?id=${b.dataset.delSh}`, { method: 'POST', body: { _delete: 1 } });
     toast('Share removed', 'ok'); navigate('shares');
   }));
+}
+
+/* =========================================================================
+   Top sharers — monthly bonus pool leaderboard
+   ========================================================================= */
+let lbPeriod = '';
+
+function lbMonthOptions(current) {
+  // last 6 months, newest first (YYYY-MM). Client-side is fine for a picker.
+  const opts = []; const d = new Date();
+  d.setDate(1);
+  for (let i = 0; i < 6; i++) {
+    const ym = d.toISOString().slice(0, 7);
+    const label = d.toLocaleString('en', { month: 'long', year: 'numeric' });
+    opts.push(`<option value="${ym}" ${ym === current ? 'selected' : ''}>${label}${i === 0 ? ' (this month)' : ''}</option>`);
+    d.setMonth(d.getMonth() - 1);
+  }
+  return opts.join('');
+}
+
+async function viewLeaderboard() {
+  let r;
+  try { r = await api('leaderboard.php' + (lbPeriod ? `?period=${lbPeriod}` : '')); }
+  catch (e) {
+    if (e.status === 500) { $('#view').innerHTML = `<div class="empty"><div class="em">🧩</div>Run setup on the Accounts tab first.</div>`; setTopbar('Top sharers', ''); return; }
+    throw e;
+  }
+  lbPeriod = r.period;
+  const c = r.config;
+  const roleP = ro => ro === 'broker' ? '<span class="pill amber">broker</span>' : '<span class="pill purple">distributor</span>';
+  setTopbar('Top sharers', `Bonus pool for the highest sharers by unique clicks — ${r.label}.`,
+    `<select class="input" id="lbPeriod" style="width:auto">${lbMonthOptions(lbPeriod)}</select>`);
+
+  const total = r.paid ? r.paidTotal : r.totalPayout;
+  const payable = c.pool > 0 && !r.paid && !r.isFuture && r.rows.some(x => x.payout > 0);
+
+  $('#view').innerHTML = `
+    ${c.pool <= 0 ? `<div class="banner amber"><span>💤</span><div><b>Feature is off.</b> Set a monthly <b>pool</b> under <b>Settings → Top-sharer bonus</b> to start rewarding your most active sharers — even when the sale didn't close through their link.</div></div>` : ''}
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">Monthly pool</div><div class="val">${kmoney(c.pool)}</div><div class="meta">split among top ${c.winners}</div></div>
+      <div class="kpi"><div class="lbl">Split method</div><div class="val" style="font-size:1.1rem">${c.weighted ? 'By clicks' : 'Equal'}</div><div class="meta">${c.weighted ? 'proportional to reach' : 'same to each winner'}</div></div>
+      <div class="kpi"><div class="lbl">${r.paid ? 'Paid this month' : 'Will pay out'}</div><div class="val">${kmoney(total)}</div><div class="meta">${r.paid ? `paid ${esc(r.paidOn || '')}` : `to ${r.rows.filter(x => x.payout > 0).length} winner(s)`}</div></div>
+      <div class="kpi"><div class="lbl">Ranked by</div><div class="val" style="font-size:1.1rem">Unique clicks</div><div class="meta">capped ${c.dayCap}/link/day (anti-fraud)</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Leaderboard — ${esc(r.label)}</h3><div class="spacer"></div>
+        ${r.paid ? `<span class="pill green">✓ Paid ${esc(r.paidOn || '')}</span>`
+          : `<button class="btn btn-primary btn-sm" id="lbPay" ${payable ? '' : 'disabled'}>Pay ${kmoney(total)} to ${r.rows.filter(x => x.payout > 0).length} winner(s)</button>`}
+      </div>
+      <div class="tbl-wrap">
+        ${r.rows.length ? `<table class="tbl">
+          <thead><tr><th>#</th><th>Sharer</th><th>Role</th><th class="num">Unique clicks</th><th class="num">${r.paid ? 'Paid' : 'Bonus'}</th></tr></thead>
+          <tbody>${r.rows.map(x => `
+            <tr>
+              <td class="cell-main">${x.rank}</td>
+              <td><span class="cell-main">${esc(x.name)}</span><div class="cell-sub">${esc(x.referral_code)}</div></td>
+              <td>${roleP(x.role)}</td>
+              <td class="num cell-main">${x.score.toLocaleString()}${x.raw > x.score ? `<div class="cell-sub">${x.raw.toLocaleString()} raw</div>` : ''}</td>
+              <td class="num cell-main">${(r.paid ? (x.paidAmount || 0) : x.payout) > 0 ? money(r.paid ? x.paidAmount : x.payout) : '—'}</td>
+            </tr>`).join('')}</tbody></table>`
+          : `<div class="empty"><div class="em">🏁</div>No qualifying sharers yet for ${esc(r.label)}.<br><span class="cell-sub">Sharers need at least ${c.minClicks} unique click${c.minClicks === 1 ? '' : 's'} to appear.</span></div>`}
+      </div>
+    </div>
+    <p class="cell-sub" style="max-width:640px">This bonus is <b>on top of</b> sale commissions and is paid from a fixed pool, so your monthly cost never exceeds ${kmoney(c.pool)} regardless of activity. Paying is one-time per month — the button locks once done.</p>`;
+
+  const sel = $('#lbPeriod');
+  if (sel) sel.addEventListener('change', () => { lbPeriod = sel.value; navigate('leaderboard'); });
+  const payBtn = $('#lbPay');
+  if (payBtn) payBtn.addEventListener('click', async () => {
+    if (!confirm(`Pay ${money(total)} for ${r.label}? This credits each winner's withdrawable balance and can't be undone.`)) return;
+    payBtn.disabled = true;
+    try {
+      const res = await api(`leaderboard.php?period=${lbPeriod}`, { method: 'POST' });
+      toast(`Paid ${money(res.total)} to ${res.winners} winner(s)`, 'ok');
+      navigate('leaderboard');
+    } catch (e) { toast(e.message, 'err'); payBtn.disabled = false; }
+  });
 }
 
 /* =========================================================================
@@ -783,13 +972,13 @@ function renderAccounts() {
   $$('[data-seg]').forEach(b => b.addEventListener('click', () => { acctFilter = b.dataset.seg; renderAccounts(); }));
   $$('[data-approve]').forEach(b => b.addEventListener('click', async () => {
     await api(`users.php?id=${b.dataset.approve}`, { method: 'POST', body: { status: 'Active' } });
-    toast('Account approved', 'ok'); navigate('accounts');
+    toast('Account approved', 'ok'); await loadNotifs(); navigate('accounts');
   }));
   $$('[data-edit-u]').forEach(b => b.addEventListener('click', () => accountModal(store.users.find(u => u.id == b.dataset.editU))));
   $$('[data-del-u]').forEach(b => b.addEventListener('click', async () => {
     if (!confirm('Delete this account and all its links/earnings? This cannot be undone.')) return;
     await api(`users.php?id=${b.dataset.delU}`, { method: 'POST', body: { _delete: 1 } });
-    toast('Account deleted', 'ok'); navigate('accounts');
+    toast('Account deleted', 'ok'); await loadNotifs(); navigate('accounts');
   }));
 }
 
@@ -801,6 +990,7 @@ function accountModal(u) {
       <div class="field full"><label>Broker commission % (blank = use global default)</label><input class="input" id="u_pct" type="number" step="0.5" min="0" max="100" value="${u.commission_pct != null ? u.commission_pct : ''}" placeholder="e.g. 12"></div>
     </div>
     <p class="cell-sub">Code: <b>${esc(u.referral_code)}</b> · Joined ${esc(u.joined)} · ${money(u.balance.withdrawable)} withdrawable</p>
+    <p class="cell-sub" style="margin-top:.3rem">Payout: ${u.account_number ? `<b>${esc(u.bank_name || '—')}</b> · ${esc(u.account_number)}${u.account_name ? ' · ' + esc(u.account_name) : ''}` : '<i>not provided yet</i>'}</p>
   `, 'Save', async () => {
     const pct = $('#u_pct').value.trim();
     await api(`users.php?id=${u.id}`, { method: 'POST', body: {
@@ -896,8 +1086,23 @@ async function viewSettings() {
         <div class="form-grid">
           <div class="field"><label>Max rewarded clicks / link / day</label><input class="input" id="set_daycap" type="number" value="${s.max_click_points_per_link_day}"></div>
           <div class="field"><label>Click unlock cap (% of sale)</label><input class="input" id="set_unlockcap" type="number" value="${s.click_unlock_cap_pct}"></div>
+          <div class="field full"><label>Share reward unlock cap (% of sale)</label><input class="input" id="set_shareunlock" type="number" value="${s.share_unlock_cap_pct}"></div>
         </div>
+        <p class="cell-sub">When a shared car sells, pending share rewards for that car unlock only up to this share of the car's real price (oldest first) — so a month of stacked ₦${(+s.share_reward_ngn || 0).toLocaleString()}/day rewards can't all cash out on one thin-margin sale.</p>
         <button class="btn btn-primary" id="saveFraud">Save limits</button>
+      </div>
+    </div>
+    <div class="panel" style="max-width:640px">
+      <div class="panel-head"><h3>Top-sharer bonus</h3></div>
+      <div class="panel-body">
+        <p class="cell-sub" style="margin-top:0">Rewards your most active sharers each month by unique clicks — <b>even when the sale didn't close through their link</b> — from a fixed pool. Set the pool to <b>0</b> to switch it off. Pay it out on the <b>Top sharers</b> tab. Cost never exceeds the pool.</p>
+        <div class="form-grid">
+          <div class="field"><label>Monthly pool (₦) · 0 = off</label><input class="input" id="set_lbpool" type="number" value="${s.leaderboard_pool_ngn}"></div>
+          <div class="field"><label>Number of winners</label><input class="input" id="set_lbwin" type="number" value="${s.leaderboard_winners}"></div>
+          <div class="field"><label>Split method</label><select class="input" id="set_lbsplit"><option value="1" ${+s.leaderboard_split_weighted ? 'selected' : ''}>By clicks (weighted)</option><option value="0" ${+s.leaderboard_split_weighted ? '' : 'selected'}>Equal shares</option></select></div>
+          <div class="field"><label>Min unique clicks to qualify</label><input class="input" id="set_lbmin" type="number" value="${s.leaderboard_min_clicks}"></div>
+        </div>
+        <button class="btn btn-primary" id="saveLb">Save bonus settings</button>
       </div>
     </div>
     <div class="panel" style="max-width:640px">
@@ -941,10 +1146,480 @@ async function viewSettings() {
   $('#saveFraud').addEventListener('click', async () => {
     await api('settings.php', { method: 'POST', body: {
       max_click_points_per_link_day: +$('#set_daycap').value,
-      click_unlock_cap_pct: +$('#set_unlockcap').value } });
+      click_unlock_cap_pct: +$('#set_unlockcap').value,
+      share_unlock_cap_pct: +$('#set_shareunlock').value } });
     toast('Limits saved', 'ok');
   });
+  $('#saveLb').addEventListener('click', async () => {
+    await api('settings.php', { method: 'POST', body: {
+      leaderboard_pool_ngn: +$('#set_lbpool').value,
+      leaderboard_winners: +$('#set_lbwin').value,
+      leaderboard_split_weighted: +$('#set_lbsplit').value,
+      leaderboard_min_clicks: +$('#set_lbmin').value } });
+    toast('Bonus settings saved', 'ok');
+  });
   $('#runMig3').addEventListener('click', runMigration);
+}
+
+/* =========================================================================
+   Website (CMS) — hero slider + every editable block of homepage copy.
+   Blocks are described declaratively in CMS_BLOCKS and rendered by a generic
+   form builder, so adding a field is a one-line change here plus the matching
+   default in api/_content_defaults.php.
+   ========================================================================= */
+let cmsData = {}, cmsSlides = [], cmsAutoplay = 6000;
+
+/* Field types: text | area | lines | check | select | list */
+const CMS_BLOCKS = [
+  { key: 'nav', title: 'Header & navigation', hint: 'The bar across the top of the homepage.', fields: [
+    { k: 'mark',        l: 'Logo mark',    t: 'text' },
+    { k: 'brand',       l: 'Brand name',   t: 'text' },
+    { k: 'brand_em',    l: 'Brand name — italic part', t: 'text' },
+    { k: 'login_label', l: 'Login button', t: 'text' },
+    { k: 'links',       l: 'Menu links',   t: 'lines', w: 'full', rows: 4,
+      hint: 'One per line, as  Label | link  — e.g.  Fleet | #fleet' },
+  ]},
+
+  { key: 'hero', title: 'Hero (no-slider fallback)',
+    hint: 'Used when the slider above has no live slides. The tabs show either way.', fields: [
+    { k: 'headline',  l: 'Headline', t: 'area', w: 'full', rows: 2, hint: 'Line breaks are kept.' },
+    { k: 'lead',      l: 'Sub-heading', t: 'area', w: 'full', rows: 2 },
+    { k: 'cta_label', l: 'Link text', t: 'text' },
+    { k: 'cta_href',  l: 'Link target', t: 'text' },
+    { k: 'tabs',      l: 'Hero tabs', t: 'lines', w: 'full', rows: 3, hint: 'One tab per line.' },
+  ]},
+
+  { key: 'booking', title: 'Search bar', hint: 'The find-a-car strip under the hero.', fields: [
+    { k: 'location_label', l: 'Location label', t: 'text' },
+    { k: 'location_ph',    l: 'Location placeholder', t: 'text' },
+    { k: 'type_label',     l: 'Car type label', t: 'text' },
+    { k: 'budget_label',   l: 'Budget label', t: 'text' },
+    { k: 'types',          l: 'Car type options', t: 'lines', rows: 6, hint: 'One per line.' },
+    { k: 'budgets',        l: 'Budget options',  t: 'lines', rows: 6, hint: 'One per line.' },
+    { k: 'btn',            l: 'Button text', t: 'text', w: 'full' },
+  ]},
+
+  { key: 'fleet', title: 'Fleet section', hint: 'Heading above the live inventory grid.', fields: [
+    { k: 'kicker',      l: 'Kicker', t: 'text' },
+    { k: 'title',       l: 'Heading', t: 'text' },
+    { k: 'title_em',    l: 'Heading — highlighted', t: 'text' },
+    { k: 'title_after', l: 'Heading — after highlight', t: 'text' },
+    { k: 'text',        l: 'Intro text', t: 'area', w: 'full', rows: 2 },
+    { k: 'empty',       l: 'Message when no cars are live', t: 'text', w: 'full' },
+  ]},
+
+  { key: 'share', title: 'Share & Earn section', hint: 'Wrap words in *asterisks* to bold them.', fields: [
+    { k: 'kicker',      l: 'Kicker', t: 'text' },
+    { k: 'title',       l: 'Heading', t: 'text' },
+    { k: 'title_em',    l: 'Heading — highlighted', t: 'text' },
+    { k: 'title_after', l: 'Heading — after highlight', t: 'text' },
+    { k: 'text',        l: 'Intro text', t: 'area', w: 'full', rows: 2 },
+    { k: 'steps', l: 'Steps', t: 'list', itemLabel: 'Step', cap: 6, cols: [
+      { k: 'ico',   l: 'Icon',  t: 'text' },
+      { k: 'title', l: 'Title', t: 'text' },
+      { k: 'text',  l: 'Text',  t: 'area', w: 'full', rows: 2 },
+    ]},
+    { k: 'chips', l: 'Reward band', t: 'list', itemLabel: 'Reward', cap: 6, cols: [
+      { k: 'v', l: 'Amount', t: 'text' },
+      { k: 'k', l: 'Caption', t: 'text' },
+    ]},
+  ]},
+
+  { key: 'tiers', title: 'Partner tiers', fields: [
+    { k: 'kicker',      l: 'Kicker', t: 'text' },
+    { k: 'title',       l: 'Heading', t: 'text' },
+    { k: 'title_em',    l: 'Heading — highlighted', t: 'text' },
+    { k: 'title_after', l: 'Heading — after highlight', t: 'text' },
+    { k: 'text',        l: 'Intro text', t: 'area', w: 'full', rows: 2 },
+    { k: 'items', l: 'Tiers', t: 'list', itemLabel: 'Tier', cap: 6, cols: [
+      { k: 'medal', l: 'Badge', t: 'text' },
+      { k: 'name',  l: 'Name',  t: 'text' },
+      { k: 'tone',  l: 'Colour', t: 'select', opts: [
+        { v: 'bronze', l: 'Bronze' }, { v: 'silver', l: 'Silver' },
+        { v: 'gold',   l: 'Gold'   }, { v: 'plat',   l: 'Platinum' } ] },
+      { k: 'units', l: 'Volume', t: 'text' },
+      { k: 'rate',  l: 'Rate',   t: 'text' },
+      { k: 'lbl',   l: 'Rate caption', t: 'text' },
+      { k: 'featured', l: 'Highlighted', t: 'check', on: 'Outline this tier' },
+      { k: 'perks', l: 'Perks', t: 'lines', w: 'full', rows: 3, hint: 'One per line.' },
+    ]},
+  ]},
+
+  { key: 'quotes', title: 'Testimonials', fields: [
+    { k: 'kicker',      l: 'Kicker', t: 'text' },
+    { k: 'title',       l: 'Heading', t: 'text' },
+    { k: 'title_em',    l: 'Heading — highlighted', t: 'text' },
+    { k: 'title_after', l: 'Heading — after highlight', t: 'text' },
+    { k: 'items', l: 'Quotes', t: 'list', itemLabel: 'Quote', cap: 9, cols: [
+      { k: 'text',  l: 'Quote', t: 'area', w: 'full', rows: 3 },
+      { k: 'name',  l: 'Name',  t: 'text' },
+      { k: 'role',  l: 'Company', t: 'text' },
+      { k: 'stars', l: 'Stars (0–5)', t: 'text' },
+    ]},
+  ]},
+
+  { key: 'cta', title: 'Partner call-to-action', hint: 'The dark band with the application form.', fields: [
+    { k: 'kicker',    l: 'Kicker', t: 'text' },
+    { k: 'title',     l: 'Heading', t: 'area', w: 'full', rows: 2 },
+    { k: 'text',      l: 'Body text', t: 'area', w: 'full', rows: 2 },
+    { k: 'btn_label', l: 'Button text', t: 'text' },
+    { k: 'btn_href',  l: 'Button target', t: 'text' },
+    { k: 'stats', l: 'Stat strip', t: 'list', itemLabel: 'Stat', cap: 4, cols: [
+      { k: 'n', l: 'Figure', t: 'text' },
+      { k: 'l', l: 'Caption', t: 'text' },
+    ]},
+    { k: 'form_title', l: 'Form heading', t: 'text' },
+    { k: 'form_btn',   l: 'Form button', t: 'text' },
+    { k: 'form_text',  l: 'Form sub-text', t: 'text', w: 'full' },
+    { k: 'form_email', l: 'Applications go to', t: 'text', w: 'full' },
+  ]},
+
+  { key: 'footer', title: 'Footer', fields: [
+    { k: 'about',      l: 'About text', t: 'area', w: 'full', rows: 2 },
+    { k: 'col1_title', l: 'Column 1 heading', t: 'text' },
+    { k: 'col1_links', l: 'Column 1 links', t: 'lines', rows: 4, hint: 'Label | link' },
+    { k: 'col2_title', l: 'Column 2 heading', t: 'text' },
+    { k: 'col2_links', l: 'Column 2 links', t: 'lines', rows: 4, hint: 'Label | link' },
+    { k: 'col3_title', l: 'Contact heading', t: 'text' },
+    { k: 'email',      l: 'Contact email', t: 'text' },
+    { k: 'phone',      l: 'Contact phone', t: 'text' },
+    { k: 'copyright',  l: 'Copyright line', t: 'text' },
+    { k: 'tagline',    l: 'Footer tagline', t: 'text' },
+  ]},
+];
+
+async function viewContent() {
+  let r;
+  try { r = await api('content.php'); }
+  catch (e) {
+    if (e.status === 500) {
+      $('#view').innerHTML = `<div class="empty"><div class="em">🧩</div>The website content tables aren't set up yet.<br>
+        <button class="btn btn-primary btn-sm" style="margin-top:1rem" id="runMigCms">Set up now</button></div>`;
+      $('#runMigCms').addEventListener('click', runMigration);
+      setTopbar('Website', ''); return;
+    }
+    throw e;
+  }
+  cmsData = r.content || {};
+  cmsSlides = r.slides || [];
+  try { const st = await api('settings.php'); cmsAutoplay = +st.settings.hero_autoplay_ms || 0; }
+  catch { cmsAutoplay = 6000; }
+
+  const live = cmsSlides.filter(s => s.active).length;
+  setTopbar('Website', live
+    ? `${live} live slide${live === 1 ? '' : 's'} — the slider is showing on the homepage.`
+    : 'No live slides — the homepage is using its original hero.',
+    `<a class="btn btn-ghost" href="../" target="_blank">🌐 Preview site</a>`);
+  renderContent();
+}
+
+function renderContent() {
+  const y = window.scrollY;
+  $('#view').innerHTML = cmsSlidesPanel() + CMS_BLOCKS.map(cmsPanelHtml).join('');
+  wireContent();
+  window.scrollTo(0, y);
+}
+
+/* ------------------------------ hero slider ----------------------------- */
+function cmsSlidesPanel() {
+  return `
+    <div class="panel">
+      <div class="panel-head"><h3>Hero slider</h3><div class="spacer"></div>
+        <button class="btn btn-primary btn-sm" data-slide-add>＋ Add slide</button></div>
+      <div class="panel-body">
+        <p class="cell-sub" style="margin-top:0">Live slides replace the homepage hero — photo, headline and button. Hide them all and the original hero comes back untouched.</p>
+        ${cmsSlides.length
+          ? `<div class="slide-list">${cmsSlides.map(cmsSlideRow).join('')}</div>`
+          : `<div class="empty" style="padding:1.6rem"><div class="em">🖼</div>No slides yet.</div>`}
+        <div class="form-grid" style="margin-top:1.4rem">
+          <div class="field"><label>Autoplay delay (ms) · 0 = off</label>
+            <input class="input" id="cms_autoplay" type="number" min="0" max="60000" step="500" value="${cmsAutoplay}"></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="cms_saveAuto">Save slider settings</button>
+      </div>
+    </div>`;
+}
+
+function cmsSlideRow(s, i) {
+  return `
+    <div class="slide-row">
+      <div class="slide-thumb"${s.image ? ` style="background-image:url('${attr(s.image)}')"` : ''}>${s.image ? '' : '🖼'}</div>
+      <div class="slide-main">
+        <b>${esc(s.title || 'Untitled slide')}</b>
+        <div class="cell-sub">${esc(s.subtitle || '—')}</div>
+      </div>
+      <span class="pill ${s.active ? 'green' : 'grey'}">${s.active ? 'Live' : 'Hidden'}</span>
+      <div class="slide-ops">
+        <button class="icon-btn" data-smove="${i}" data-dir="-1" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="icon-btn" data-smove="${i}" data-dir="1" title="Move down" ${i === cmsSlides.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="btn btn-ghost btn-sm" data-sedit="${s.id}">Edit</button>
+        <button class="icon-btn" data-sdel="${s.id}" title="Delete">🗑</button>
+      </div>
+    </div>`;
+}
+
+function cmsSlideModal(slide) {
+  const s = slide || { image: '', title: '', subtitle: '', cta_label: 'View the fleet',
+    cta_href: '#fleet', align: 'left', overlay: 55, active: true };
+  const isEdit = !!slide;
+
+  openModal(isEdit ? 'Edit slide' : 'Add slide', `
+    <div class="form-grid">
+      <div class="full field">
+        <label>Slide image</label>
+        <div class="dropzone" id="sdz">📁 Click or drop an image here<br><span class="cell-sub">Wide photos work best · JPG / PNG / WEBP</span></div>
+        <input type="file" id="sfile" accept="image/*" hidden>
+        <div class="thumbs" id="sthumb"></div>
+      </div>
+      <div class="full field"><label>Headline</label><input class="input" id="s_title" value="${attr(s.title)}"></div>
+      <div class="full field"><label>Sub-heading</label><textarea class="input" id="s_sub" rows="2">${esc(s.subtitle)}</textarea></div>
+      <div class="field"><label>Button text</label><input class="input" id="s_cl" value="${attr(s.cta_label)}"></div>
+      <div class="field"><label>Button target</label><input class="input" id="s_ch" value="${attr(s.cta_href)}"></div>
+      <div class="field"><label>Text position</label><select class="input" id="s_align">
+        <option value="left" ${s.align === 'left' ? 'selected' : ''}>Left</option>
+        <option value="center" ${s.align === 'center' ? 'selected' : ''}>Centred</option></select></div>
+      <div class="field"><label>Photo darkening (%)</label><input class="input" id="s_ov" type="number" min="0" max="90" value="${s.overlay}"></div>
+      <div class="full"><label class="check"><input type="checkbox" id="s_active" ${s.active ? 'checked' : ''}> Show this slide on the site</label></div>
+    </div>
+  `, isEdit ? 'Save slide' : 'Add slide', async () => cmsSaveSlide(s, isEdit));
+
+  let image = s.image || '';
+  const paint = () => {
+    $('#sthumb').innerHTML = image
+      ? `<div class="th" style="background-image:url('${attr(image)}')"><button data-rmimg>✕</button></div>` : '';
+    const rm = $('#sthumb [data-rmimg]');
+    if (rm) rm.addEventListener('click', () => { image = ''; paint(); });
+  };
+  paint();
+  window.__getSlideImage = () => image;
+
+  const dz = $('#sdz'), fi = $('#sfile');
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', (e) => { e.preventDefault(); dz.classList.remove('drag'); upload(e.dataTransfer.files); });
+  fi.addEventListener('change', () => upload(fi.files));
+
+  async function upload(files) {
+    if (!files || !files.length) return;
+    const fd = new FormData();
+    fd.append('image', files[0]);
+    const label = dz.innerHTML;
+    dz.innerHTML = '⏳ Uploading…';
+    try {
+      const r = await api('content.php?upload=1', { method: 'POST', form: fd });
+      image = r.url; paint(); toast('Image uploaded', 'ok');
+    } catch (e) { toast(e.message, 'err'); }
+    dz.innerHTML = label;
+  }
+}
+
+async function cmsSaveSlide(s, isEdit) {
+  const body = {
+    image: window.__getSlideImage ? window.__getSlideImage() : (s.image || ''),
+    title: $('#s_title').value, subtitle: $('#s_sub').value,
+    cta_label: $('#s_cl').value, cta_href: $('#s_ch').value,
+    align: $('#s_align').value, overlay: +$('#s_ov').value,
+    active: $('#s_active').checked,
+  };
+  if (!body.title.trim() && !body.image) { toast('Add an image or a headline first.', 'err'); return false; }
+  await api(isEdit ? `content.php?slide=1&id=${s.id}` : 'content.php?slide=1', { method: 'POST', body });
+  toast(isEdit ? 'Slide saved' : 'Slide added', 'ok');
+  closeModal();
+  navigate('content');
+  return true;
+}
+
+async function cmsDeleteSlide(id) {
+  const s = cmsSlides.find(x => x.id == id);
+  if (!confirm(`Delete "${s && s.title ? s.title : 'this slide'}"? This cannot be undone.`)) return;
+  await api(`content.php?slide=1&id=${id}`, { method: 'POST', body: { _delete: 1 } });
+  toast('Slide deleted', 'ok');
+  navigate('content');
+}
+
+async function cmsMoveSlide(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= cmsSlides.length) return;
+  const list = cmsSlides.slice();
+  [list[i], list[j]] = [list[j], list[i]];
+  cmsSlides = list;
+  renderContent();
+  try { await api('content.php?reorder=1', { method: 'POST', body: { ids: list.map(s => s.id) } }); }
+  catch (e) { toast(e.message, 'err'); navigate('content'); }
+}
+
+/* --------------------------- generic block forms ------------------------ */
+function cmsPanelHtml(spec) {
+  const data = cmsData[spec.key] || {};
+  return `
+    <div class="panel">
+      <div class="panel-head"><h3>${esc(spec.title)}</h3><div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" data-reset="${spec.key}">Reset</button></div>
+      <div class="panel-body">
+        ${spec.hint ? `<p class="cell-sub" style="margin-top:0">${esc(spec.hint)}</p>` : ''}
+        <div class="form-grid">${spec.fields.map(f => cmsFieldHtml(spec.key, f, data)).join('')}</div>
+        <button class="btn btn-primary" data-save="${spec.key}">Save changes</button>
+      </div>
+    </div>`;
+}
+
+function cmsFieldHtml(blockKey, f, data) {
+  if (f.t === 'list') return cmsListHtml(blockKey, f, Array.isArray(data[f.k]) ? data[f.k] : []);
+  return `
+    <div class="field${f.w === 'full' ? ' full' : ''}">
+      <label>${esc(f.l)}</label>
+      ${cmsInput(`${blockKey}.${f.k}`, f, data[f.k])}
+      ${f.hint ? `<span class="cell-sub">${esc(f.hint)}</span>` : ''}
+    </div>`;
+}
+
+function cmsListHtml(blockKey, f, rows) {
+  const path = `${blockKey}.${f.k}`;
+  const item = (row, i) => `
+    <div class="cms-item">
+      <div class="cms-item-head">
+        <b>${esc(f.itemLabel || 'Item')} ${i + 1}</b><div class="spacer"></div>
+        <button class="icon-btn" data-rowmove="${path}" data-i="${i}" data-dir="-1" title="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="icon-btn" data-rowmove="${path}" data-i="${i}" data-dir="1" title="Move down" ${i === rows.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="icon-btn" data-rowdel="${path}" data-i="${i}" title="Remove">🗑</button>
+      </div>
+      <div class="form-grid">
+        ${f.cols.map(c => `
+          <div class="field${c.w === 'full' ? ' full' : ''}">
+            <label>${esc(c.l)}</label>
+            ${cmsInput(`${path}.${i}.${c.k}`, c, row[c.k])}
+            ${c.hint ? `<span class="cell-sub">${esc(c.hint)}</span>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  return `
+    <div class="field full">
+      <label>${esc(f.l)}</label>
+      <div class="cms-list">${rows.map(item).join('')}</div>
+      <button class="btn btn-ghost btn-sm" data-rowadd="${path}" data-cap="${f.cap || 12}">
+        ＋ Add ${esc((f.itemLabel || 'item').toLowerCase())}</button>
+    </div>`;
+}
+
+function cmsInput(path, f, val) {
+  const v = val == null ? '' : val;
+  if (f.t === 'area' || f.t === 'lines')
+    return `<textarea class="input" rows="${f.rows || 3}" data-cms="${path}">${esc(v)}</textarea>`;
+  if (f.t === 'check')
+    return `<label class="check"><input type="checkbox" data-cms="${path}" data-check ${+v ? 'checked' : ''}> ${esc(f.on || 'Yes')}</label>`;
+  if (f.t === 'select')
+    return `<select class="input" data-cms="${path}">${f.opts.map(o =>
+      `<option value="${attr(o.v)}"${String(o.v) === String(v) ? ' selected' : ''}>${esc(o.l)}</option>`).join('')}</select>`;
+  return `<input class="input" data-cms="${path}" value="${attr(v)}">`;
+}
+
+/* Read/write cmsData through a dotted path, e.g. "share.steps.0.text". */
+function cmsAt(path) {
+  const p = path.split('.');
+  let o = cmsData;
+  for (let i = 0; i < p.length - 1; i++) {
+    if (o == null) return null;
+    o = o[p[i]];
+  }
+  return o == null ? null : { obj: o, key: p[p.length - 1] };
+}
+
+/** The array behind a "block.listKey" path, or null. */
+function cmsList(path) {
+  let o = cmsData;
+  for (const k of path.split('.')) { if (o == null) return null; o = o[k]; }
+  return Array.isArray(o) ? o : null;
+}
+
+let cmsBound = false;
+
+function wireContent() {
+  const view = $('#view');
+
+  // Every input writes straight back into cmsData, so re-rendering a list
+  // never loses edits made elsewhere in the form. #view outlives each render,
+  // so this delegation is bound once rather than per render.
+  if (!cmsBound) {
+    const capture = (e) => {
+      const el = e.target.closest('[data-cms]');
+      if (!el) return;
+      const at = cmsAt(el.dataset.cms);
+      if (at) at.obj[at.key] = el.hasAttribute('data-check') ? (el.checked ? 1 : 0) : el.value;
+    };
+    view.addEventListener('input', capture);
+    view.addEventListener('change', capture);
+    cmsBound = true;
+  }
+
+  $$('[data-save]', view).forEach(b => b.addEventListener('click', async () => {
+    const key = b.dataset.save;
+    b.disabled = true;
+    try {
+      const r = await api(`content.php?block=${encodeURIComponent(key)}`, { method: 'POST', body: cmsData[key] });
+      cmsData[key] = r.value;
+      toast('Saved — refresh the homepage to see it', 'ok');
+    } catch (e) { toast(e.message, 'err'); }
+    b.disabled = false;
+  }));
+
+  $$('[data-reset]', view).forEach(b => b.addEventListener('click', async () => {
+    const key = b.dataset.reset;
+    if (!confirm('Restore this section to the original wording? Your changes to it are lost.')) return;
+    try {
+      const r = await api(`content.php?block=${encodeURIComponent(key)}&reset=1`, { method: 'POST', body: {} });
+      cmsData[key] = r.value;
+      renderContent();
+      toast('Section reset', 'ok');
+    } catch (e) { toast(e.message, 'err'); }
+  }));
+
+  $$('[data-rowadd]', view).forEach(b => b.addEventListener('click', () => {
+    const list = cmsList(b.dataset.rowadd);
+    if (!list) return;
+    if (list.length >= +b.dataset.cap) { toast(`Up to ${b.dataset.cap} items here.`, 'err'); return; }
+    const spec = cmsFindList(b.dataset.rowadd);
+    const row = {};
+    spec.cols.forEach(c => { row[c.k] = c.t === 'check' ? 0 : (c.t === 'select' ? c.opts[0].v : ''); });
+    list.push(row);
+    renderContent();
+  }));
+
+  $$('[data-rowdel]', view).forEach(b => b.addEventListener('click', () => {
+    const list = cmsList(b.dataset.rowdel);
+    if (list) { list.splice(+b.dataset.i, 1); renderContent(); }
+  }));
+
+  $$('[data-rowmove]', view).forEach(b => b.addEventListener('click', () => {
+    const list = cmsList(b.dataset.rowmove);
+    if (!list) return;
+    const i = +b.dataset.i, j = i + (+b.dataset.dir);
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    renderContent();
+  }));
+
+  const add = $('[data-slide-add]', view);
+  if (add) add.addEventListener('click', () => cmsSlideModal());
+  $$('[data-sedit]', view).forEach(b => b.addEventListener('click', () => cmsSlideModal(cmsSlides.find(s => s.id == b.dataset.sedit))));
+  $$('[data-sdel]', view).forEach(b => b.addEventListener('click', () => cmsDeleteSlide(b.dataset.sdel)));
+  $$('[data-smove]', view).forEach(b => b.addEventListener('click', () => cmsMoveSlide(+b.dataset.smove, +b.dataset.dir)));
+
+  const sa = $('#cms_saveAuto', view);
+  if (sa) sa.addEventListener('click', async () => {
+    cmsAutoplay = +$('#cms_autoplay').value || 0;
+    try {
+      await api('settings.php', { method: 'POST', body: { hero_autoplay_ms: cmsAutoplay } });
+      toast('Slider settings saved', 'ok');
+    } catch (e) { toast(e.message, 'err'); }
+  });
+}
+
+/** Find the list field spec behind a "block.listKey" path. */
+function cmsFindList(path) {
+  const [blockKey, listKey] = path.split('.');
+  const spec = CMS_BLOCKS.find(b => b.key === blockKey);
+  return spec && spec.fields.find(f => f.k === listKey && f.t === 'list');
 }
 
 /* =========================================================================
@@ -978,6 +1653,7 @@ function closeModal() {
   host.hidden = true; host.innerHTML = '';
   host.removeEventListener('click', backdropClose);
   window.__getPhotos = null;
+  window.__getSlideImage = null;
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#modal').hidden) closeModal(); });
 

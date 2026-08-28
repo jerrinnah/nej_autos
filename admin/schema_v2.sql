@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS `users` (
   `status`        VARCHAR(20)  NOT NULL DEFAULT 'Pending',     -- Pending | Active | Suspended
   `referral_code` VARCHAR(60)  NOT NULL,
   `commission_pct` DECIMAL(5,2) NULL,                          -- broker override; NULL = use global
+  `bank_name`      VARCHAR(120) NOT NULL DEFAULT '',           -- payout bank (self-service, Settings)
+  `account_number` VARCHAR(40)  NOT NULL DEFAULT '',           -- payout account number
+  `account_name`   VARCHAR(160) NOT NULL DEFAULT '',           -- payout account holder name
   `last_login`    DATETIME     NULL,
   `approved_at`   DATETIME     NULL,
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -115,7 +118,15 @@ INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
   ('distributor_sale_bonus_ngn', '25000'),   -- ₦ bonus when a shared car sells
   ('min_withdrawal_ngn',         '10000'),   -- minimum withdrawal
   ('max_click_points_per_link_day', '20'),   -- anti-fraud: rewarded clicks per link per day
-  ('click_unlock_cap_pct',       '20');      -- anti-fraud: unlock click points up to this % of sale value
+  ('click_unlock_cap_pct',       '20'),      -- anti-fraud: unlock click points up to this % of sale value
+  ('share_reward_ngn',           '800'),     -- ₦ per counted share (pending until a shared car sells)
+  ('max_counted_shares_per_day', '2'),       -- shares that count toward the reward per user per day
+  ('share_unlock_cap_pct',       '5'),       -- anti-fraud: unlock share rewards up to this % of sale value
+  -- Top-sharer leaderboard bonus (paid regardless of a sale; cost is capped by the pool).
+  ('leaderboard_pool_ngn',       '0'),       -- fixed ₦ pool per month (0 = feature off)
+  ('leaderboard_winners',        '5'),       -- how many top sharers share the pool
+  ('leaderboard_split_weighted', '1'),       -- 1 = split by clicks, 0 = equal shares
+  ('leaderboard_min_clicks',     '1');       -- minimum capped unique clicks to qualify
 
 -- Ready-to-use demo accounts (already Active). Passwords:
 --   broker@nejautos.com      → BrokerDemo2026
@@ -128,3 +139,37 @@ VALUES
    '$2y$12$ZQsKuwzZZyqCRox6Zxg8bOhDtxxu797K9EU/JejQNujp63kOjvEq2','broker','Active','NEJ-BRK-DEMO',NOW()),
   ('Demo Distributor','distributor@nejautos.com','','NEJ Demo',
    '$2y$12$hSXVXljtL0eD3t6nz/1hFOh11MqOcb32KcMky.mwouRkNnli5WMPa','distributor','Active','NEJ-DST-DEMO',NOW());
+
+-- --------------------------------------------------------- site_content ----
+-- Editable homepage copy (the CMS). One row per block; `v` holds a JSON
+-- document whose shape is owned by admin/api/_content_defaults.php. Kept
+-- apart from `settings` because these values are paragraphs, not scalars.
+CREATE TABLE IF NOT EXISTS `site_content` (
+  `k`          VARCHAR(60) NOT NULL,
+  `v`          LONGTEXT    NOT NULL,
+  `updated_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`k`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------------- slides ----
+-- Hero slider. Ordered by `sort`; only `active` rows reach the public site.
+-- With no active rows the homepage keeps its original static hero.
+CREATE TABLE IF NOT EXISTS `slides` (
+  `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `image`      VARCHAR(255) NOT NULL DEFAULT '',
+  `title`      VARCHAR(160) NOT NULL DEFAULT '',
+  `subtitle`   VARCHAR(400) NOT NULL DEFAULT '',
+  `cta_label`  VARCHAR(60)  NOT NULL DEFAULT '',
+  `cta_href`   VARCHAR(255) NOT NULL DEFAULT '',
+  `align`      VARCHAR(10)  NOT NULL DEFAULT 'left',   -- left | center
+  `overlay`    TINYINT UNSIGNED NOT NULL DEFAULT 55,   -- % darkening over the photo
+  `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+  `sort`       INT          NOT NULL DEFAULT 0,
+  `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_slides_order` (`active`, `sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Slider behaviour (admin-editable on the Website screen).
+INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
+  ('hero_autoplay_ms', '6000');             -- 0 = no autoplay

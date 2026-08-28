@@ -49,14 +49,15 @@
         </g>
       </svg>
     </div>
+    <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
 
     <div class="container">
       <div class="site-header">
-        <a class="brand" href="#top">
+        <a class="brand" href="#top" id="brandLink">
           <span class="mark">NEJ</span> <span>nej<em>autos</em></span>
         </a>
         <nav class="header-nav">
-          <div class="links">
+          <div class="links" id="navLinks">
             <a href="#fleet">Fleet</a>
             <a href="#share">Share &amp; Earn</a>
             <a href="#tiers">Tiers</a>
@@ -69,17 +70,19 @@
             <a href="portal" aria-label="Account">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
             </a>
-            <a class="login-pill" href="portal">Partner Login</a>
+            <a class="login-pill" id="loginPill" href="portal">Partner Login</a>
           </div>
         </nav>
       </div>
 
-      <div class="hero-inner">
-        <h1>The car is<br>waiting for you</h1>
-        <p class="lead">Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.</p>
-        <a class="more" href="#fleet">More information <span class="arrow">→</span></a>
+      <div class="hero-inner" id="heroInner">
+        <div class="hero-copy" id="heroCopy">
+          <h1 id="heroH1">The car is<br>waiting for you</h1>
+          <p class="lead" id="heroLead">Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.</p>
+          <a class="more" id="heroMore" href="#fleet">More information <span class="arrow">→</span></a>
+        </div>
 
-        <div class="hero-tabs">
+        <div class="hero-tabs" id="heroTabs">
           <button class="hero-tab active" data-tab>Buy a car</button>
           <button class="hero-tab" data-tab>Finance &amp; warranty</button>
           <button class="hero-tab" data-tab>Become a partner</button>
@@ -93,19 +96,19 @@
     <form class="booking" onsubmit="findCar(event)">
       <div class="book-field">
         <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-        <div style="flex:1"><label>Location</label><input type="text" placeholder="Your city or region" /></div>
+        <div style="flex:1"><label id="bkLocLabel">Location</label><input type="text" id="bkLocInput" placeholder="Your city or region" /></div>
       </div>
       <div class="book-field">
         <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg></span>
-        <div style="flex:1"><label>Car type</label>
-          <select><option>Any type</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option></select></div>
+        <div style="flex:1"><label id="bkTypeLabel">Car type</label>
+          <select id="bkTypeSel"><option>Any type</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option></select></div>
       </div>
       <div class="book-field">
         <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-        <div style="flex:1"><label>Budget</label>
-          <select><option>Any budget</option><option>Under ₦25M</option><option>₦25M – ₦40M</option><option>₦40M – ₦60M</option><option>₦60M+</option></select></div>
+        <div style="flex:1"><label id="bkBudLabel">Budget</label>
+          <select id="bkBudSel"><option>Any budget</option><option>Under ₦25M</option><option>₦25M – ₦40M</option><option>₦40M – ₦60M</option><option>₦60M+</option></select></div>
       </div>
-      <button class="btn btn-primary" type="submit">Find a car
+      <button class="btn btn-primary" type="submit"><span id="bkBtn">Find a car</span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
     </form>
@@ -114,7 +117,7 @@
   <!-- ============================= FLEET ============================ -->
   <section class="section" id="fleet">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" id="fleetHead">
         <span class="kicker">Handpicked inventory</span>
         <h2>Our <b>Fleet</b></h2>
         <p>Every vehicle is title-checked, inspected and reconditioned by NEJ Autos — ready for your customers.</p>
@@ -129,12 +132,12 @@
   <!-- ========================= SHARE & EARN ========================= -->
   <section class="section tint" id="share">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" id="shareHead">
         <span class="kicker">Share &amp; Earn</span>
         <h2>Post a car. Get paid <b>when it sells.</b></h2>
         <p>Share any NEJ Autos listing to WhatsApp, Facebook or X. Every share is tracked to you — and buyers who come through your link earn you more.</p>
       </div>
-      <div class="steps">
+      <div class="steps" id="shareSteps">
         <div class="step">
           <div class="num">1</div>
           <div class="step-ico">📤</div>
@@ -154,7 +157,7 @@
           <p>Earn <b>₦800 per share</b> plus your full commission <b>+2%</b> if the buyer buys through your link. The month's top sharer wins <b>₦300,000</b>.</p>
         </div>
       </div>
-      <div class="earn-band">
+      <div class="earn-band" id="earnBand">
         <div class="earn-chip"><div class="v">₦800</div><div class="k">Per counted share (max 2/day)</div></div>
         <div class="earn-chip"><div class="v">₦300,000</div><div class="k">Monthly top-sharer prize</div></div>
         <div class="earn-chip"><div class="v">₦100,000</div><div class="k">Per referred partner who sells</div></div>
@@ -166,11 +169,11 @@
   <!-- ============================= TIERS ============================ -->
   <section class="section" id="tiers">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" id="tiersHead">
         <h2>Partner <b>Tiers</b></h2>
         <p>The more you sell each month, the higher your commission on every single car — automatically.</p>
       </div>
-      <div class="tiers-grid">
+      <div class="tiers-grid" id="tiersGrid">
         <div class="tier2">
           <div class="tier-top t-bronze"><div class="tier-medal">🥉</div><div class="tier-name">Bronze</div><div class="tier-units">0–4 cars / month</div></div>
           <div class="tier-rate"><span class="big">3%</span> <span class="lbl">base commission</span></div>
@@ -198,11 +201,11 @@
   <!-- ========================= TESTIMONIALS ========================= -->
   <section class="section">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" id="quotesHead">
         <span class="kicker">Trusted by partners</span>
         <h2>What <b>They Say</b> About Us</h2>
       </div>
-      <div class="quote-grid">
+      <div class="quote-grid" id="quoteGrid">
         <div class="quote-card">
           <div class="stars">★★★★★</div>
           <p>“I share NEJ listings to my WhatsApp groups and get paid when they sell. Fastest payouts I've had from any wholesaler.”</p>
@@ -226,7 +229,7 @@
   <section class="section tint" id="partners">
     <div class="container">
       <div class="cta-band">
-        <div>
+        <div id="ctaMain">
           <span class="kicker">NEJ Autos Partner Network</span>
           <h2>Earn up to 7% selling cars you never had to source.</h2>
           <p>Join the network, share inventory, and get paid on every sale — plus bonuses for top sellers, referrals, and the most-shared cars each month.</p>
@@ -237,7 +240,7 @@
             <div><div class="n">250+</div><div class="l">Partners</div></div>
           </div>
         </div>
-        <div class="apply-card" id="apply">
+        <div class="apply-card" id="apply"><div id="applyCard">
           <h3>Apply to join</h3>
           <p>A partner specialist replies within 24 hours.</p>
           <form class="apply-form" action="mailto:partners@nejautos.com" method="post" enctype="text/plain">
@@ -247,7 +250,7 @@
             <textarea name="Notes" placeholder="How many cars do you move per month?"></textarea>
             <button class="btn btn-primary" type="submit">Submit application</button>
           </form>
-        </div>
+        </div></div>
       </div>
     </div>
   </section>
@@ -257,37 +260,40 @@
     <div class="container">
       <div class="footer-top">
         <div>
-          <div class="brand"><span class="mark">NEJ</span> <span>nej<em>autos</em></span></div>
-          <p>Certified vehicles and a partner network built for fast, reliable payouts and real growth.</p>
+          <div class="brand" id="footerBrand"><span class="mark">NEJ</span> <span>nej<em>autos</em></span></div>
+          <p id="footerAbout">Certified vehicles and a partner network built for fast, reliable payouts and real growth.</p>
         </div>
-        <div class="footer-col">
+        <div class="footer-col" id="footerCol1">
           <h4>Explore</h4>
           <a href="#fleet">Our fleet</a><a href="#share">Share &amp; earn</a><a href="#tiers">Partner tiers</a><a href="portal">The portal</a>
         </div>
-        <div class="footer-col">
+        <div class="footer-col" id="footerCol2">
           <h4>Partners</h4>
           <a href="portal">Partner login</a><a href="#apply">Apply to join</a><a href="portal#share">Share &amp; earn</a>
         </div>
-        <div class="footer-col">
+        <div class="footer-col" id="footerCol3">
           <h4>Contact</h4>
           <a href="mailto:partners@nejautos.com">partners@nejautos.com</a><a href="tel:+10000000000">+1 (000) 000-0000</a>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>NEJ Autos &copy; 2026. All rights reserved.</span>
-        <span>Designed for dealers, brokers &amp; independent agents.</span>
+        <span id="footerCopy">NEJ Autos &copy; 2026. All rights reserved.</span>
+        <span id="footerTagline">Designed for dealers, brokers &amp; independent agents.</span>
       </div>
     </div>
   </footer>
 
   <script>
-    // Hero tab toggle (visual)
-    document.querySelectorAll('[data-tab]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        document.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
+    // Hero tab toggle (visual). Re-run whenever the CMS rebuilds the tabs.
+    function bindTabs() {
+      document.querySelectorAll('[data-tab]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('[data-tab]').forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+        });
       });
-    });
+    }
+    bindTabs();
 
     // Booking search -> scroll to fleet
     function findCar(e) {
@@ -398,6 +404,315 @@
       body:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>'
     };
 
+    /* ===================== SITE CONTENT (CMS) =====================
+       Copy and hero slides come from the admin database (content.php).
+       Everything here degrades to the markup already in this file, so an
+       unreachable API or an un-migrated database leaves the page as it is. */
+    var CMS_FLEET_EMPTY = 'New inventory is on its way — check back soon.';
+
+    function cmsLines(s) {
+      return String(s == null ? '' : s).split('\n')
+        .map(function (x) { return x.trim(); }).filter(Boolean);
+    }
+    function cmsLinks(s) {
+      return cmsLines(s).map(function (l) {
+        var i = l.indexOf('|');
+        return i < 0 ? { label: l, href: '#' }
+                     : { label: l.slice(0, i).trim(), href: l.slice(i + 1).trim() || '#' };
+      });
+    }
+    /* Admin copy is escaped; *asterisks* are the one bit of markup we honour. */
+    function cmsRich(s) {
+      return escapeHtml(s == null ? '' : s).replace(/\*([^*]+)\*/g, '<b>$1</b>');
+    }
+    function cmsHead(b) {
+      return (b.kicker ? '<span class="kicker">' + escapeHtml(b.kicker) + '</span>' : '') +
+        '<h2>' + escapeHtml(b.title || '') +
+          (b.title_em ? ' <b>' + escapeHtml(b.title_em) + '</b>' : '') +
+          (b.title_after ? ' ' + escapeHtml(b.title_after) : '') + '</h2>' +
+        (b.text ? '<p>' + cmsRich(b.text) + '</p>' : '');
+    }
+    function cmsFill(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+    function cmsText(id, txt) { var el = document.getElementById(id); if (el && txt) el.textContent = txt; }
+    function cmsOptions(id, list) {
+      var el = document.getElementById(id);
+      if (el && list.length) {
+        el.innerHTML = list.map(function (o) { return '<option>' + escapeHtml(o) + '</option>'; }).join('');
+      }
+    }
+    function cmsStars(n) {
+      n = Math.max(0, Math.min(5, parseInt(n, 10) || 0));
+      var out = '';
+      for (var i = 0; i < 5; i++) out += (i < n) ? '★' : '<span class="off">★</span>';
+      return out;
+    }
+    function cmsInitials(name) {
+      return String(name || '?').split(/\s+/).slice(0, 2)
+        .map(function (w) { return w[0] || ''; }).join('').toUpperCase() || '?';
+    }
+    function cmsBrand(b) {
+      return '<span class="mark">' + escapeHtml(b.mark) + '</span> <span>' +
+        escapeHtml(b.brand) + '<em>' + escapeHtml(b.brand_em) + '</em></span>';
+    }
+
+    function applyContent(c) {
+      if (!c) return;
+      var b;
+
+      /* ---- header ---- */
+      if ((b = c.nav)) {
+        cmsFill('brandLink', cmsBrand(b));
+        cmsFill('footerBrand', cmsBrand(b));
+        var links = cmsLinks(b.links);
+        if (links.length) {
+          cmsFill('navLinks', links.map(function (l) {
+            return '<a href="' + escAttr(l.href) + '">' + escapeHtml(l.label) + '</a>';
+          }).join(''));
+        }
+        cmsText('loginPill', b.login_label);
+      }
+
+      /* ---- hero (a live slider overrides this further down) ---- */
+      if ((b = c.hero)) {
+        var h1 = document.getElementById('heroH1');
+        if (h1 && b.headline) h1.innerHTML = escapeHtml(b.headline).replace(/\n/g, '<br>');
+        cmsText('heroLead', b.lead);
+        var more = document.getElementById('heroMore');
+        if (more && b.cta_label) {
+          more.innerHTML = escapeHtml(b.cta_label) + ' <span class="arrow">→</span>';
+          if (b.cta_href) more.setAttribute('href', b.cta_href);
+        }
+        var tabs = cmsLines(b.tabs);
+        if (tabs.length) {
+          cmsFill('heroTabs', tabs.map(function (t, i) {
+            return '<button class="hero-tab' + (i ? '' : ' active') + '" data-tab>' + escapeHtml(t) + '</button>';
+          }).join(''));
+          bindTabs();
+        }
+      }
+
+      /* ---- search bar ---- */
+      if ((b = c.booking)) {
+        cmsText('bkLocLabel', b.location_label);
+        var loc = document.getElementById('bkLocInput');
+        if (loc && b.location_ph) loc.setAttribute('placeholder', b.location_ph);
+        cmsText('bkTypeLabel', b.type_label);
+        cmsText('bkBudLabel', b.budget_label);
+        cmsOptions('bkTypeSel', cmsLines(b.types));
+        cmsOptions('bkBudSel', cmsLines(b.budgets));
+        cmsText('bkBtn', b.btn);
+      }
+
+      /* ---- fleet ---- */
+      if ((b = c.fleet)) {
+        cmsFill('fleetHead', cmsHead(b));
+        if (b.empty) {
+          var note = document.getElementById('fleetNote');
+          var grid = document.getElementById('fleetGrid');
+          // the inventory fetch may already have landed with the old wording
+          if (note && grid && !grid.children.length && note.textContent === CMS_FLEET_EMPTY) {
+            note.textContent = b.empty;
+          }
+          CMS_FLEET_EMPTY = b.empty;
+        }
+      }
+
+      /* ---- share & earn ---- */
+      if ((b = c.share)) {
+        cmsFill('shareHead', cmsHead(b));
+        if (b.steps && b.steps.length) {
+          cmsFill('shareSteps', b.steps.map(function (s, i) {
+            return '<div class="step"><div class="num">' + (i + 1) + '</div>' +
+              '<div class="step-ico">' + escapeHtml(s.ico) + '</div>' +
+              '<h3>' + escapeHtml(s.title) + '</h3><p>' + cmsRich(s.text) + '</p></div>';
+          }).join(''));
+        }
+        if (b.chips && b.chips.length) {
+          cmsFill('earnBand', b.chips.map(function (ch) {
+            return '<div class="earn-chip"><div class="v">' + escapeHtml(ch.v) + '</div>' +
+              '<div class="k">' + escapeHtml(ch.k) + '</div></div>';
+          }).join(''));
+        }
+      }
+
+      /* ---- partner tiers ---- */
+      if ((b = c.tiers)) {
+        cmsFill('tiersHead', cmsHead(b));
+        var tones = { bronze: 't-bronze', silver: 't-silver', gold: 't-gold', plat: 't-plat' };
+        if (b.items && b.items.length) {
+          cmsFill('tiersGrid', b.items.map(function (t) {
+            return '<div class="tier2' + (+t.featured ? ' featured' : '') + '">' +
+              '<div class="tier-top ' + (tones[t.tone] || 't-bronze') + '">' +
+                '<div class="tier-medal">' + escapeHtml(t.medal) + '</div>' +
+                '<div class="tier-name">' + escapeHtml(t.name) + '</div>' +
+                '<div class="tier-units">' + escapeHtml(t.units) + '</div></div>' +
+              '<div class="tier-rate"><span class="big">' + escapeHtml(t.rate) + '</span> ' +
+                '<span class="lbl">' + escapeHtml(t.lbl) + '</span></div>' +
+              '<ul>' + cmsLines(t.perks).map(function (pk) {
+                return '<li>' + escapeHtml(pk) + '</li>'; }).join('') + '</ul></div>';
+          }).join(''));
+        }
+      }
+
+      /* ---- testimonials ---- */
+      if ((b = c.quotes)) {
+        cmsFill('quotesHead', cmsHead(b));
+        if (b.items && b.items.length) {
+          cmsFill('quoteGrid', b.items.map(function (q) {
+            return '<div class="quote-card"><div class="stars">' + cmsStars(q.stars) + '</div>' +
+              '<p>“' + escapeHtml(q.text) + '”</p><div class="quote-person">' +
+              '<span class="quote-avatar">' + escapeHtml(cmsInitials(q.name)) + '</span>' +
+              '<div><strong>' + escapeHtml(q.name) + '</strong>' +
+              '<span>' + escapeHtml(q.role) + '</span></div></div></div>';
+          }).join(''));
+        }
+      }
+
+      /* ---- partner call-to-action ---- */
+      if ((b = c.cta)) {
+        cmsFill('ctaMain',
+          (b.kicker ? '<span class="kicker">' + escapeHtml(b.kicker) + '</span>' : '') +
+          '<h2>' + escapeHtml(b.title) + '</h2><p>' + cmsRich(b.text) + '</p>' +
+          '<a class="btn btn-primary" href="' + escAttr(b.btn_href || 'portal') + '">' +
+            escapeHtml(b.btn_label) + ' <span class="arrow">→</span></a>' +
+          ((b.stats && b.stats.length)
+            ? '<div class="cta-stats">' + b.stats.map(function (s) {
+                return '<div><div class="n">' + escapeHtml(s.n) + '</div>' +
+                  '<div class="l">' + escapeHtml(s.l) + '</div></div>'; }).join('') + '</div>'
+            : ''));
+        cmsFill('applyCard',
+          '<h3>' + escapeHtml(b.form_title) + '</h3><p>' + escapeHtml(b.form_text) + '</p>' +
+          '<form class="apply-form" action="mailto:' + escAttr(b.form_email) + '" method="post" enctype="text/plain">' +
+            '<input type="text" name="Name" placeholder="Full name" required />' +
+            '<input type="text" name="Company" placeholder="Dealership or agency" required />' +
+            '<input type="email" name="Email" placeholder="you@example.com" required />' +
+            '<textarea name="Notes" placeholder="How many cars do you move per month?"></textarea>' +
+            '<button class="btn btn-primary" type="submit">' + escapeHtml(b.form_btn) + '</button></form>');
+      }
+
+      /* ---- footer ---- */
+      if ((b = c.footer)) {
+        cmsText('footerAbout', b.about);
+        var col = function (id, title, links) {
+          cmsFill(id, '<h4>' + escapeHtml(title) + '</h4>' + links.map(function (l) {
+            return '<a href="' + escAttr(l.href) + '">' + escapeHtml(l.label) + '</a>'; }).join(''));
+        };
+        col('footerCol1', b.col1_title, cmsLinks(b.col1_links));
+        col('footerCol2', b.col2_title, cmsLinks(b.col2_links));
+        cmsFill('footerCol3', '<h4>' + escapeHtml(b.col3_title) + '</h4>' +
+          (b.email ? '<a href="mailto:' + escAttr(b.email) + '">' + escapeHtml(b.email) + '</a>' : '') +
+          (b.phone ? '<a href="tel:' + escAttr(String(b.phone).replace(/[^\d+]/g, '')) +
+             '">' + escapeHtml(b.phone) + '</a>' : ''));
+        cmsText('footerCopy', b.copyright);
+        cmsText('footerTagline', b.tagline);
+      }
+    }
+
+    /* ------------------------------ hero slider ---------------------------- */
+    function buildSlider(slides, autoplayMs) {
+      var host  = document.getElementById('heroSlides');
+      var hero  = document.querySelector('.hero');
+      var inner = document.getElementById('heroInner');
+      var copy  = document.getElementById('heroCopy');
+      if (!host || !hero || !inner || !copy || !slides.length) return;
+
+      var scene = document.querySelector('.hero-scene');
+      if (scene) scene.style.display = 'none';
+      hero.classList.add('has-slider');
+
+      host.innerHTML = slides.map(function (s, i) {
+        var shade = Math.max(0, Math.min(90, +s.overlay || 0)) / 100;
+        return '<div class="hero-slide' + (i ? '' : ' is-on') + '" style="' +
+          (s.image ? "background-image:url('" + escAttr(s.image) + "');" : '') +
+          '--shade:' + shade + '"></div>';
+      }).join('');
+      // warm the cache so advancing never shows a half-painted photo
+      slides.forEach(function (s) { if (s.image) { var im = new Image(); im.src = s.image; } });
+
+      var ctrl = document.createElement('div');
+      ctrl.className = 'hero-ctrl';
+      ctrl.innerHTML =
+        (slides.length > 1 ? '<button class="hero-arrow" type="button" data-prev aria-label="Previous slide">‹</button>' : '') +
+        '<div class="hero-dots">' + slides.map(function (s, i) {
+          return '<button class="hero-dot' + (i ? '' : ' is-on') + '" type="button" data-go="' + i +
+            '" aria-label="Slide ' + (i + 1) + '"></button>'; }).join('') + '</div>' +
+        (slides.length > 1 ? '<button class="hero-arrow" type="button" data-next aria-label="Next slide">›</button>' : '');
+      inner.appendChild(ctrl);
+
+      var layers = host.querySelectorAll('.hero-slide');
+      var dots   = ctrl.querySelectorAll('.hero-dot');
+      var cur = -1, timer = null;
+
+      function paint(s) {
+        var h1 = document.getElementById('heroH1');
+        if (h1) h1.innerHTML = escapeHtml(s.title || '').replace(/\n/g, '<br>');
+        var lead = document.getElementById('heroLead');
+        if (lead) { lead.textContent = s.subtitle || ''; lead.style.display = s.subtitle ? '' : 'none'; }
+        var more = document.getElementById('heroMore');
+        if (more) {
+          if (s.cta_label) {
+            more.innerHTML = escapeHtml(s.cta_label) + ' <span class="arrow">→</span>';
+            more.setAttribute('href', s.cta_href || '#fleet');
+            more.style.display = '';
+          } else { more.style.display = 'none'; }
+        }
+        inner.classList.toggle('is-center', s.align === 'center');
+        hero.classList.toggle('is-center', s.align === 'center');
+      }
+
+      function show(i, instant) {
+        i = (i + slides.length) % slides.length;
+        if (i === cur) return;
+        cur = i;
+        for (var k = 0; k < layers.length; k++) layers[k].classList.toggle('is-on', k === i);
+        for (var d = 0; d < dots.length; d++) dots[d].classList.toggle('is-on', d === i);
+        if (instant) { paint(slides[i]); return; }
+        copy.classList.add('is-fading');
+        setTimeout(function () { paint(slides[cur]); copy.classList.remove('is-fading'); }, 260);
+      }
+
+      function stop() { if (timer) { clearInterval(timer); timer = null; } }
+      function start() {
+        stop();
+        if (autoplayMs > 0 && slides.length > 1 &&
+            !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+          timer = setInterval(function () { show(cur + 1); }, autoplayMs);
+        }
+      }
+
+      var prev = ctrl.querySelector('[data-prev]'), next = ctrl.querySelector('[data-next]');
+      if (prev) prev.addEventListener('click', function () { show(cur - 1); start(); });
+      if (next) next.addEventListener('click', function () { show(cur + 1); start(); });
+      Array.prototype.forEach.call(dots, function (dot) {
+        dot.addEventListener('click', function () { show(+dot.getAttribute('data-go')); start(); });
+      });
+
+      hero.addEventListener('mouseenter', stop);
+      hero.addEventListener('mouseleave', start);
+      document.addEventListener('visibilitychange', function () { if (document.hidden) { stop(); } else { start(); } });
+
+      var swipeX = null;
+      hero.addEventListener('touchstart', function (e) { swipeX = e.touches[0].clientX; }, { passive: true });
+      hero.addEventListener('touchend', function (e) {
+        if (swipeX === null) return;
+        var dx = e.changedTouches[0].clientX - swipeX;
+        if (Math.abs(dx) > 50) { show(cur + (dx < 0 ? 1 : -1)); start(); }
+        swipeX = null;
+      }, { passive: true });
+
+      show(0, true);
+      start();
+    }
+
+    fetch('/admin/api/content.php?public=1', { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) return;
+        applyContent(d.content);
+        buildSlider(d.slides || [], +d.autoplay_ms || 0);
+      })
+      .catch(function () { /* keep the copy that shipped with this page */ });
+
     function fleetStars(score) {
       score = Math.max(0, Math.min(5, parseInt(score, 10) || 0));
       var out = '';
@@ -429,7 +744,6 @@
           '<div class="specs">' +
             fleetSpec(c.is_ev ? FLEET_SVG.bolt : FLEET_SVG.fuel, c.is_ev ? 'Electric' : 'Petrol') +
             fleetSpec(FLEET_SVG.gear, 'Automatic') +
-            fleetSpec(FLEET_SVG.gauge, (c.mileage ? Number(c.mileage).toLocaleString() + ' KM' : '—')) +
             fleetSpec(FLEET_SVG.body, c.body || 'Vehicle') +
           '</div>' +
           '<div class="car-foot">' +
@@ -456,7 +770,7 @@
           var cars = (data && data.cars) ? data.cars : [];
           if (!cars.length) {
             grid.innerHTML = '';
-            if (note) { note.textContent = 'New inventory is on its way — check back soon.'; note.style.display = ''; }
+            if (note) { note.textContent = CMS_FLEET_EMPTY; note.style.display = ''; }
             return;
           }
           grid.innerHTML = cars.map(fleetCardHtml).join('');

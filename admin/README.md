@@ -15,10 +15,13 @@ admin/
 ├── config.sample.php   # copy to config.php and fill in DB credentials
 ├── README.md           # this file
 ├── uploads/cars/       # uploaded car photos land here (auto-created)
+├── uploads/site/       # slider images land here (auto-created)
 └── api/
     ├── _bootstrap.php  # DB connection, sessions, auth guard, JSON helpers
     ├── install.php     # one-time installer (creates tables + first admin)
     ├── auth.php        # login / session / logout
+    ├── content.php     # homepage CMS: content blocks + hero slides
+    ├── _content_defaults.php  # the copy the site ships with (CMS fallback + Reset)
     ├── cars.php        # inventory CRUD + photo upload + public read
     ├── leads.php       # leads CRUD + public enquiry create
     ├── partners.php    # partners CRUD
@@ -74,12 +77,20 @@ Open `https://nejautos.com/admin/` and sign in with the username/password from s
 
 | Screen | Manage / monitor |
 |--------|------------------|
-| **Overview** | Live KPIs: inventory value, sales won, open leads, partners, pending payouts, shares. Charts for lead pipeline, share platforms, stock mix, and a 6-month sales sparkline. |
+| **Overview** | Live KPIs: inventory value, sales won, open leads, partners, pending payouts, and **shares today** (with 7-day / all-time context). Charts for lead pipeline, share platforms, stock mix, a **14-day shares-per-day** bar chart, and a 6-month sales sparkline. |
 | **Inventory** | Add / edit / delete vehicles, upload photos, set price/mileage/status, flag EV/Premium/Bonus, and **generate a shareable `car.html` link** (optionally attributed to a partner referral code). |
+| **Website** | The homepage CMS: build the **hero slider** (photo, headline, button, order, show/hide) and edit every block of copy — header menu, search bar, section headings, Share & Earn steps and reward band, partner tiers, testimonials, the partner call-to-action, and the footer. Each section has its own **Reset** back to the wording the site shipped with. |
 | **Leads** | Every enquiry, filter by status, change status inline (New → Contacted → Financing → Won/Lost), see which came via share links. |
 | **Partners** | The network roster + leaderboard: units, YTD, commission, shares; add/edit/suspend partners; auto-generated referral codes. |
 | **Payouts** | Record commission runs, mark them paid, track pending vs. paid totals. |
-| **Shares** | Share-to-earn activity log by platform and partner. |
+| **Shares** | Share-to-earn activity log by platform and partner, with **today's share count** in the header. |
+| **Top sharers** | Monthly **bonus-pool leaderboard**: ranks partners by unique clicks their links drove, shows each one's computed cut of the pool, and pays it out with one click. |
+
+> **🔔 Notifications** — the sidebar bell shows a live count of **new signups** you
+> haven't looked at yet. Open it for the recent-signup list (approve pending
+> accounts inline) plus today's signup and share totals. The **Accounts** tab also
+> carries a badge with the number awaiting approval. Everything is in-app — no email
+> to configure. The "seen" mark is per-device (kept in your browser).
 
 ---
 
@@ -122,6 +133,31 @@ logged in). This creates the broker/distributor tables. Safe to re-run.
   (default 5 pts = ₦250) that accrue weekly, **plus a sale bonus** (default
   ₦25,000) when a shared car sells. Click earnings stay **locked until that car
   is sold**, then become withdrawable.
+- **Share reward** — a signed-in partner earns a small **₦ reward per counted
+  share** (default ₦800), capped at a few counted shares per day. Like click
+  points, these stay **pending until a car they shared sells**.
+
+**Top-sharer bonus (activity reward, capped)** — to keep partners motivated even
+when a sale doesn't close through their own link, a **fixed monthly pool** is split
+among the highest sharers, ranked by the **unique clicks** their links drove (each
+link's daily clicks capped by the same anti-fraud limit, so it can't be farmed).
+Configure it under **Settings → Top-sharer bonus** (pool, number of winners, split
+method); set the pool to **0** to switch it off. Pay it out under **Admin → Top
+sharers** — you see the ranking and each winner's cut, then approve with one click
+(idempotent: a month can only be paid once). Because it's a fixed pool, your monthly
+cost never exceeds what you set, no matter how much activity happens. This bonus is
+paid **available** (immediately withdrawable) — it's the one reward not gated behind
+a sale, which is why it's pool-capped and admin-approved.
+
+**Keeping payouts moderate (anti-rip-off)** — aside from the capped top-sharer pool,
+sharing never pays on its own; every share/click reward is gated behind a real sale.
+Two caps in **Admin → Settings → Anti-fraud limits** bound the exposure per sale:
+- **Click unlock cap (% of sale)** — releases pending click points only up to this
+  share of the car's real price.
+- **Share reward unlock cap (% of sale)** — new: when a shared car sells, releases
+  pending share rewards for that car only up to this share of the car's real price
+  (oldest first). Stops a month of stacked daily share rewards from all cashing out
+  on one thin-margin sale; leftover rewards stay pending for future genuine sales.
 
 **The loop**
 1. User signs up at `/portal` → you approve in **Admin → Accounts**.
@@ -132,8 +168,56 @@ logged in). This creates the broker/distributor tables. Safe to re-run.
    pays the broker commission / unlocks the distributor's points + bonus.
 6. The user requests a withdrawal → you approve/pay it under **Admin → Withdrawals**.
 
+**Payout details (self-service)** — brokers/distributors save their **bank account
+number** (bank, account number, account name) any time under the portal's **Settings**
+tab; it pre-fills every withdrawal so they don't retype it. The withdrawal button
+still **unlocks only when their balance reaches the minimum**. You can see each
+partner's saved account in **Admin → Accounts** (click a row) to verify before paying.
+
 **Tunable settings** (Admin → Settings): broker %, points per click, ₦ per point,
 distributor sale bonus, minimum withdrawal.
+
+## Editing the website (Website screen)
+
+Everything the homepage says now comes from the database, with the copy in
+`index.html` acting as the fallback. If the API is unreachable, the database
+isn't migrated, or a block has never been saved, the page renders exactly the
+wording it shipped with — it never goes blank.
+
+### Hero slider
+`Website → Hero slider → ＋ Add slide`. Each slide has a photo, headline,
+sub-heading, button (text + target), text position (left or centred), and a
+darkening percentage over the photo so light images keep the text readable.
+
+- Slides only appear on the site while they're **Live**. Hide or delete them
+  all and the original animated hero comes straight back.
+- `↑ / ↓` reorder; the order saves as soon as you click.
+- **Autoplay delay** is in milliseconds — set it to `0` to make the slider
+  manual only. It also pauses on hover, in a background tab, and for visitors
+  who've asked their system to reduce motion.
+- Wide, landscape photos work best. They go to `admin/uploads/site/`.
+
+### Copy
+Every other panel edits one block of the page. Type, then hit that panel's
+**Save changes** — each panel saves on its own, so a half-finished edit in one
+section never touches another.
+
+- Headings are split into three fields: plain text, the **highlighted** part
+  (rendered in the accent style), and anything after it. Leave the ones you
+  don't need blank.
+- Body text supports `*asterisks*` for **bold**. Everything else is escaped —
+  HTML pasted into these fields shows up as literal text rather than markup,
+  which is deliberate.
+- "Lines" fields take one item per line. Link lines are `Label | target`,
+  e.g. `Our fleet | #fleet` or `Portal | portal`.
+- Lists (steps, tiers, quotes, stats…) can be added to, reordered and trimmed.
+- **Reset** on a panel restores that section to the original wording. It only
+  affects that one section.
+
+Changes are live as soon as they save — reload the homepage to see them.
+
+> **Scope:** this covers the homepage. The partner portal and car detail pages
+> still read their wording from `portal.html` / `car.html`.
 
 ## Security notes
 
