@@ -32,6 +32,8 @@ if (method() === 'GET') {
             'company' => $r['company'], 'role' => $r['role'], 'status' => $r['status'],
             'referral_code' => $r['referral_code'],
             'commission_pct' => $r['commission_pct'] !== null ? (float)$r['commission_pct'] : null,
+            'bank_name' => $r['bank_name'] ?? '', 'account_number' => $r['account_number'] ?? '',
+            'account_name' => $r['account_name'] ?? '',
             'joined' => substr((string)$r['created_at'], 0, 10),
             'last_login' => $r['last_login'] ? substr((string)$r['last_login'], 0, 10) : null,
             'balance' => $bal,

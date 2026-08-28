@@ -39,7 +39,6 @@ if ($car) {
     $ogTitle  = ((int)$car['year'] ? $car['year'] . ' ' : '') . $name . ' — ' . $priceStr;
     $bits = [];
     if (!empty($car['body']))    $bits[] = $car['body'];
-    if ((int)$car['mileage'] > 0) $bits[] = number_format((int)$car['mileage']) . ' KM';
     $bits[] = 'Certified & inspected by NEJ Autos.';
     $ogDesc = implode(' · ', $bits);
 

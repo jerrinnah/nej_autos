@@ -292,12 +292,29 @@ function settle_sale(int $leadId): void {
     }
 
     // Unlock this car's pending SHARE rewards for the settling user — a car they
-    // shared has now sold. Mirrors the click-points unlock above; shares are
-    // already capped per day at the source, so no extra cap is applied here.
+    // shared has now sold. Mirrors the click-points unlock: release oldest-first
+    // but only up to a share of the car's REAL price, so a month of stacked
+    // daily share rewards can't all cash out on one thin-margin sale. Leftover
+    // rewards stay pending and can unlock against future genuine sales.
     if ($carId) {
-        $pdo->prepare("UPDATE ledger SET status='available'
-                       WHERE user_id=:u AND car_id=:c AND type='share_reward' AND status='pending'")
-            ->execute([':u' => $user['id'], ':c' => $carId]);
+        $capPct = (float)setting('share_unlock_cap_pct', '5');
+        $capAmt = (int)floor($saleValue * $capPct / 100);
+        if ($capAmt > 0) {
+            $rows = $pdo->prepare(
+                "SELECT id, amount FROM ledger
+                 WHERE user_id=:u AND car_id=:c AND type='share_reward' AND status='pending'
+                 ORDER BY id ASC");
+            $rows->execute([':u' => $user['id'], ':c' => $carId]);
+            $acc = 0; $ids = [];
+            foreach ($rows->fetchAll() as $r) {
+                if ($acc + (int)$r['amount'] > $capAmt) break;
+                $acc += (int)$r['amount']; $ids[] = (int)$r['id'];
+            }
+            if ($ids) {
+                $ph = implode(',', array_fill(0, count($ids), '?'));
+                $pdo->prepare("UPDATE ledger SET status='available' WHERE id IN ($ph)")->execute($ids);
+            }
+        }
     }
 }
 
