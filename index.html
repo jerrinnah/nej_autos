@@ -54,7 +54,10 @@
         <div class="hero-copy" id="heroCopy">
           <h1 id="heroH1">Your next car</h1>
           <p class="lead" id="heroLead">Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.</p>
-          <a class="more" id="heroMore" href="#fleet">More information <span class="arrow">→</span></a>
+          <!-- Hidden unless a slide (or the hero block) supplies a link. The
+               static "More information" default is gone: it competed with the
+               tabs and the callback form for the same click. -->
+          <a class="more" id="heroMore" href="#fleet" hidden>More information <span class="arrow">→</span></a>
         </div>
 
         <div class="hero-showcase">
@@ -100,6 +103,14 @@
         </svg>
           </div>
           <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
+
+          <!-- Names whatever car the stage is currently showing. Filled by
+               dressHero() only when the photo came from live inventory. -->
+          <a class="hero-feature" id="heroFeature" href="#fleet" hidden>
+            <span class="hero-feature-name" id="heroFeatureName"></span>
+            <span class="hero-feature-price" id="heroFeaturePrice"></span>
+            <span class="hero-feature-go">View this car <span class="arrow">→</span></span>
+          </a>
 
           <!-- Call-to-buy, over the dark band. The number is the one set under
                Website → Footer → Contact, so there is only ever one to edit. -->
@@ -539,9 +550,12 @@
         if (h1 && b.headline) h1.innerHTML = escapeHtml(b.headline).replace(/\n/g, '<br>');
         cmsText('heroLead', b.lead);
         var more = document.getElementById('heroMore');
-        if (more && b.cta_label) {
-          more.innerHTML = escapeHtml(b.cta_label) + ' <span class="arrow">→</span>';
-          if (b.cta_href) more.setAttribute('href', b.cta_href);
+        if (more) {
+          if (b.cta_label) {
+            more.innerHTML = escapeHtml(b.cta_label) + ' <span class="arrow">→</span>';
+            if (b.cta_href) more.setAttribute('href', b.cta_href);
+          }
+          more.hidden = !b.cta_label;
         }
         // Tabs accept "Label | #target"; a bare label still renders (inert).
         if (b.call_label) cmsText('heroCallLbl', b.call_label);
@@ -704,8 +718,8 @@
           if (s.cta_label) {
             more.innerHTML = escapeHtml(s.cta_label) + ' <span class="arrow">→</span>';
             more.setAttribute('href', s.cta_href || '#fleet');
-            more.style.display = '';
-          } else { more.style.display = 'none'; }
+          }
+          more.hidden = !s.cta_label;
         }
         inner.classList.toggle('is-center', s.align === 'center');
         hero.classList.toggle('is-center', s.align === 'center');
@@ -817,6 +831,46 @@
       '</article>';
     }
 
+    /* The hero capsule, dressed from real stock.
+       Priority: CMS slides > assets/hero.jpg > newest car's photo > the drawn
+       scene. Nobody has to upload anything for the hero to show a real car —
+       the inventory that is already there does the job, and it stays current
+       as stock changes. */
+    function dressHero(cars) {
+      var stage = document.querySelector('.hero-stage');
+      if (!stage) return;
+      // A live slider or a hand-picked hero photo both outrank inventory.
+      if (document.querySelector('.hero-slide')) return;
+      if (document.querySelector('.hero-photo')) return;
+
+      var pick = null;
+      for (var i = 0; i < cars.length; i++) {
+        var c = cars[i];
+        if (!c.photos || !c.photos.length) continue;
+        if (!pick) pick = c;
+        if (c.featured) { pick = c; break; }     // a featured car wins outright
+      }
+      if (!pick) return;                          // no photography yet — keep the scene
+
+      var img = document.createElement('img');
+      img.className = 'hero-photo is-live';
+      img.setAttribute('alt', '');
+      img.setAttribute('aria-hidden', 'true');
+      img.src = pick.photos[0];
+      img.onerror = function () { img.remove(); };
+      stage.insertBefore(img, stage.firstChild);
+      stage.classList.add('has-live-photo');
+
+      var name = [pick.year, pick.make, pick.model].filter(Boolean).join(' ');
+      var el = document.getElementById('heroFeature');
+      if (el) {
+        document.getElementById('heroFeatureName').textContent = name;
+        document.getElementById('heroFeaturePrice').textContent = money(pick.price);
+        el.setAttribute('href', 'car?id=' + encodeURIComponent(pick.id) + '&ref=NEJ-DIRECT');
+        el.hidden = false;
+      }
+    }
+
     function loadFleet() {
       var grid = document.getElementById('fleetGrid');
       var note = document.getElementById('fleetNote');
@@ -825,6 +879,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var cars = (data && data.cars) ? data.cars : [];
+          dressHero(cars);
           if (!cars.length) {
             grid.innerHTML = '';
             if (note) { note.textContent = CMS_FLEET_EMPTY; note.style.display = ''; }

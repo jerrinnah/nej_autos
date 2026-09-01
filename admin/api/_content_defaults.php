@@ -31,7 +31,9 @@ return [
 'hero' => [
     'headline'  => "The car is\nwaiting for you",
     'lead'      => 'Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.',
-    'cta_label' => 'More information',
+    // Blank by default: the hero already has the tabs and the callback card, so
+    // a third link here only splits the click. Set a label to bring it back.
+    'cta_label' => '',
     'cta_href'  => '#fleet',
     'tabs'      => "Buy a car | #fleet\nShare & earn | #share\nBecome a partner | #apply",
     'call_label'=> 'Talk to a specialist',
