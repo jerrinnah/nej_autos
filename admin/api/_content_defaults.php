@@ -78,11 +78,14 @@ return [
         ['ico' => '👤', 'title' => 'A buyer taps your link',
          'text' => "They land on the car's page and enquire — automatically *credited to you* as the source of the sale."],
         ['ico' => '💸', 'title' => 'You get paid',
-         'text' => "Earn *₦800 per share* plus your full tier commission if the buyer buys through your link. The month's top sharer wins *₦300,000*."],
+         'text' => "Earn *₦800 per share* plus your full tier commission if the buyer buys through your link."],
     ],
     'chips' => [
         ['v' => '₦800',     'k' => 'Per counted share · 2/day, 4/day on a streak'],
-        ['v' => '₦300,000', 'k' => 'Monthly top-sharer prize'],
+        // {prize} is replaced with the live pool from Settings → Top-sharer bonus.
+        // With the pool at 0 the bonus is switched off and this chip is dropped,
+        // so the page can never advertise a prize nothing would pay out.
+        ['v' => '{prize}',  'k' => 'Monthly top-sharer prize'],
         ['v' => '₦100,000', 'k' => 'Per referred partner who sells'],
         ['v' => '₦250,000', 'k' => 'Bonus per EV / premium sold'],
     ],
