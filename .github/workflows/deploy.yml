@@ -12,7 +12,10 @@ name: Deploy to cPanel
 #
 # Repo secrets (Settings → Secrets and variables → Actions):
 #   FTP_SERVER    host76.registrar-servers.com
-#   FTP_USERNAME  cPanel / FTP account username
+#   FTP_USERNAME  an FTP account whose DIRECTORY is /home/<cpanel user>/public_html
+#                 (cPanel → FTP Accounts). A sub-account is confined to that
+#                 directory, which is why server-dir below is "./" and not
+#                 "public_html/".
 #   FTP_PASSWORD  that account's password
 #
 # The whole repo is uploaded apart from the excludes at the bottom, so adding a
@@ -61,7 +64,13 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: ./
-          server-dir: public_html/
+          # Relative to the FTP ACCOUNT'S OWN HOME, not /home/<cpanel user>.
+          # The deploy account is created with its directory set straight to
+          # /home/<cpanel user>/public_html, so the document root IS its home
+          # and the target is "./". Pointing a cPanel FTP sub-account at
+          # "public_html/" instead silently uploads a whole second copy of the
+          # site into <its home>/public_html, which nothing ever serves.
+          server-dir: ./
           # Never overwrite server-only secrets or visitor-uploaded media.
           # admin/uploads/.htaccess is deliberately NOT excluded — the folder's
           # no-execute guard must ship.
