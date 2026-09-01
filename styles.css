@@ -4,6 +4,7 @@
    stage, floating pill chrome, white cards on a soft grey page.
    ========================================================================= */
 :root {
+  --topbar-h: 82px;      /* the floating pill's row — the hero starts under it */
   --ink: #101114;
   --body: #5b616c;
   --muted: #8b919c;
@@ -120,22 +121,35 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
 .site-header.nav-open .nav-toggle span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
 /* ------------------------------- Hero ---------------------------------- */
-.hero { position: relative; padding: 1.5rem 0 0; }
+/* Full-bleed stage: the slide (or the car pulled from stock) fills the screen
+   and the copy sits over it. The topbar floats above as a pill, so the hero
+   starts at the very top of the page rather than below a band of canvas. */
+.hero {
+  position: relative; overflow: hidden;
+  min-height: 100svh;                 /* svh: no jump when mobile chrome hides */
+  display: flex; align-items: center;
+  margin-top: calc(-1 * (var(--topbar-h, 74px)));
+  padding: calc(var(--topbar-h, 74px) + 1rem) 0 clamp(4rem, 9vh, 7rem);
+}
 .hero-inner {
-  position: relative; z-index: 1;
+  position: relative; z-index: 2;   /* above .hero-showcase, which is z-index 0 */
   display: flex; flex-direction: column; align-items: center; text-align: center;
-  padding: 0.6rem 0 2.9rem;
+  width: 100%; padding: 0;
 }
 .hero-copy { order: 1; width: 100%; transition: opacity 0.28s ease; }
 .hero-copy.is-fading { opacity: 0; }
 .hero h1 {
-  color: var(--ink); margin: 0 0 1rem;
+  color: #fff; margin: 0 0 1rem;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
   font-size: clamp(2.9rem, 0.5rem + 12vw, 10.5rem);
   line-height: 0.9; letter-spacing: -0.02em;
 }
-.hero .lead { font-size: 1.05rem; color: var(--body); max-width: 58ch; margin: 0 auto 0.4rem; }
+.hero .lead {
+  font-size: 1.05rem; color: rgba(255, 255, 255, 0.86); max-width: 58ch;
+  margin: 0 auto 1.1rem; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
+}
 .hero .more {
-  display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink);
+  display: inline-flex; align-items: center; gap: 0.6rem; color: #fff;
   font-weight: 650; border-bottom: 2px solid var(--accent); padding-bottom: 0.3rem;
 }
 .hero .more:hover .arrow { transform: translateX(4px); }
@@ -143,37 +157,39 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
 /* Showcase = the capsule plus the car that overhangs it. The capsule itself
    still clips its own scene/slider; the cut-out sits outside that clip so it
    can break the silhouette the way a single hero car should. */
+/* Escapes .container to span the viewport, and sits behind the copy. */
 .hero-showcase {
-  order: 2; position: relative; overflow: visible;
-  width: min(900px, 100%); margin-top: 1.1rem;
+  position: absolute; inset: 0; z-index: 0;
+  left: 50%; transform: translateX(-50%);
+  width: 100vw; margin: 0; overflow: hidden;
 }
 
-/* The capsule stage that holds either the fallback scene or the CMS slider. */
+/* The stage now fills the hero rather than sitting in a capsule. */
 .hero-stage {
-  position: relative; overflow: hidden;
-  width: 100%; aspect-ratio: 2.5 / 1;
-  border-radius: var(--pill); background: var(--ink);
-  box-shadow: var(--shadow);
+  position: absolute; inset: 0; overflow: hidden;
+  width: 100%; height: 100%;
+  border-radius: 0; background: var(--ink);
+}
+
+/* A full-bleed photo always needs a scrim — the copy sits directly on it. */
+.hero-stage::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(6, 8, 12, 0.55) 0%, rgba(6, 8, 12, 0.30) 42%, rgba(6, 8, 12, 0.55) 100%),
+    radial-gradient(120% 90% at 50% 45%, rgba(6, 8, 12, 0.12) 0%, rgba(6, 8, 12, 0.62) 100%);
 }
 
 /* Cut-out car, overhanging the capsule's lower edge. */
+/* Optional cut-out, standing on the foot of the hero. */
 .hero-car {
-  position: absolute; z-index: 4; left: 50%; bottom: 0;
-  transform: translate(-50%, 26%);
-  width: min(680px, 84%); height: auto; pointer-events: none;
-  filter: drop-shadow(0 26px 34px rgba(16, 17, 20, 0.42));
+  position: absolute; z-index: 3; left: 50%; bottom: 0;
+  transform: translateX(-50%);
+  width: min(880px, 78%); height: auto; pointer-events: none;
+  filter: drop-shadow(0 26px 34px rgba(0, 0, 0, 0.55));
 }
-/* Room for the overhang, so the slider controls never collide with it. The
-   class is set by the image's own onload, so a missing PNG leaves no gap and
-   no :has() support is required. */
-.hero-showcase.has-car { margin-bottom: clamp(2.2rem, 7vw, 5rem); }
 
 /* Call-to-buy over the dark band. Above the slider, below the car. */
-.hero-call {
-  position: absolute; z-index: 3; left: 50%; top: clamp(1rem, 4%, 2.2rem);
-  transform: translateX(-50%); width: max-content; max-width: 92%;
-  text-align: center; color: #fff;
-}
+.hero-call { margin-top: 1rem; text-align: center; color: #fff; }
 .hero-call-lbl {
   display: block; font-size: 0.7rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.18em;
@@ -190,20 +206,13 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
 .hero-scene { position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%; }
 .hero-scene svg { width: 100%; height: 100%; object-fit: cover; }
 .hero-photo { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; object-fit: cover; }
-/* A photo pulled from live stock needs a scrim so the number and the caption
-   stay readable over whatever was shot that day. */
-.hero-stage.has-live-photo::after {
-  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(6, 8, 12, 0.62) 0%, rgba(6, 8, 12, 0.12) 38%, rgba(6, 8, 12, 0.05) 55%, rgba(6, 8, 12, 0.72) 100%);
-}
-
 /* Names the car currently on the stage — turns the hero into a shop window. */
 .hero-feature {
-  position: absolute; z-index: 4; left: 50%; bottom: clamp(0.9rem, 4%, 1.8rem);
-  transform: translateX(-50%); width: max-content; max-width: 90%;
+  position: absolute; z-index: 4; left: clamp(1.1rem, 5vw, 3.2rem);
+  /* Clears the callback card, which rides up over the hero's foot. */
+  bottom: clamp(5.2rem, 11vh, 7.5rem); max-width: min(90%, 34rem);
   display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap;
-  justify-content: center; text-align: center; color: #fff;
+  color: #fff;
 }
 .hero-feature-name {
   font-family: var(--display); font-weight: 400; text-transform: uppercase;
@@ -215,19 +224,23 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
   font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
   color: rgba(255, 255, 255, 0.72);
 }
+/* An author display: value beats the UA's [hidden] rule, so state it. */
+.hero-feature[hidden], .hero-call[hidden] { display: none; }
 .hero-feature:hover .hero-feature-go { color: #fff; }
 .hero-feature:hover .arrow { transform: translateX(3px); }
 
-.hero-tabs { order: 4; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 1.2rem 0 0; }
+.hero-tabs { order: 4; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 1.6rem 0 0; }
 .hero-tab {
-  border: 1px solid var(--line); background: #fff; color: var(--body); cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.28); color: #fff; cursor: pointer;
+  background: rgba(255, 255, 255, 0.10);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   font-weight: 600; font-size: 0.9rem; padding: 0.55rem 1.15rem; border-radius: var(--pill);
   transition: all 0.15s ease;
   /* a tab is an <a> when the CMS gave it a target, a <button> when it didn't */
   display: inline-block; text-decoration: none; font-family: inherit; line-height: 1.4;
 }
-.hero-tab:hover { border-color: var(--ink); color: var(--ink); }
-.hero-tab.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+.hero-tab:hover { border-color: #fff; background: rgba(255, 255, 255, 0.2); }
+.hero-tab.active { background: #fff; border-color: #fff; color: var(--ink); }
 
 /* --------------------------- Hero slider (CMS) -------------------------- */
 /* Only present when the admin has live slides; otherwise the fallback
@@ -243,23 +256,26 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
    only needs to be half as heavy as it was over the old full-bleed hero. */
 .hero-slide::after {
   content: ""; position: absolute; inset: 0;
-  background: #05070a; opacity: calc(var(--shade, 0.55) * 0.5);
+  /* The stage carries its own scrim now, so the admin's per-slide shade only
+     needs to top it up rather than darken from scratch. */
+  background: #05070a; opacity: calc(var(--shade, 0.55) * 0.35);
 }
 
-.hero-ctrl { order: 3; display: flex; align-items: center; justify-content: center; gap: 0.9rem; margin-top: 1.5rem; }
+.hero-ctrl { order: 5; display: flex; align-items: center; justify-content: center; gap: 0.9rem; margin-top: 1.4rem; }
 .hero-arrow {
   width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%; cursor: pointer;
-  border: 1px solid var(--line); background: #fff;
-  color: var(--ink); font-size: 1.35rem; line-height: 1; display: grid; place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: #fff; font-size: 1.35rem; line-height: 1; display: grid; place-items: center;
   transition: all 0.15s ease;
 }
-.hero-arrow:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+.hero-arrow:hover { background: #fff; color: var(--ink); border-color: #fff; }
 .hero-dots { display: flex; align-items: center; gap: 0.45rem; }
 .hero-dot {
   width: 9px; height: 9px; padding: 0; border: none; border-radius: 50%; cursor: pointer;
-  background: rgba(16, 17, 20, 0.18); transition: all 0.22s ease;
+  background: rgba(255, 255, 255, 0.4); transition: all 0.22s ease;
 }
-.hero-dot:hover { background: rgba(16, 17, 20, 0.4); }
+.hero-dot:hover { background: rgba(255, 255, 255, 0.7); }
 .hero-dot.is-on { width: 28px; border-radius: var(--pill); background: var(--accent); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -272,7 +288,7 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
   position: relative; z-index: 5;
   /* Rides up over the hero, the way the reference's booking card overlaps its
      photo — the form is the first thing in reach, not a strip below the fold. */
-  margin: clamp(-1.6rem, -1.6vw, -0.8rem) auto 0;
+  margin: clamp(-4.5rem, -6vh, -2.2rem) auto 0;
   background: #fff; border-radius: var(--pill); box-shadow: var(--shadow);
   border: 1px solid var(--line);
   display: grid; grid-template-columns: 1.6fr 1fr 1fr auto; gap: 0;
@@ -521,9 +537,7 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
   .header-nav .links a:hover { background: var(--section); }
   .nav-toggle { display: inline-grid; }
 
-  .hero-showcase { width: 100%; }
-  .hero-stage { aspect-ratio: 2 / 1; border-radius: 120px; }
-  .hero-car { width: min(560px, 88%); transform: translate(-50%, 22%); }
+  .hero-car { width: min(560px, 92%); }
   .booking { grid-template-columns: 1fr 1fr; gap: 0.4rem; border-radius: var(--r); padding: 0.6rem; }
   .book-field { border-right: none; border-bottom: 1px solid var(--line); }
   .booking .btn { grid-column: 1 / -1; }
@@ -542,10 +556,9 @@ h1, h2, h3 { color: var(--ink); letter-spacing: -0.01em; }
   .login-pill { padding: 0.5rem 0.85rem; font-size: 0.82rem; }
   .booking { grid-template-columns: 1fr; }
   .hero { padding-top: 0.5rem; }
-  .hero-stage { aspect-ratio: 5 / 4; border-radius: 28px; }
-  .hero-car { width: 94%; transform: translate(-50%, 16%); }
-  .hero-call { top: 1.1rem; }
-  .booking { margin-top: 0; }
+  .hero { min-height: 92svh; }
+  .hero-car { width: 100%; }
+  .booking { margin-top: -1.6rem; }
   .hero .lead { font-size: 0.98rem; }
   .fleet-grid { grid-template-columns: 1fr; max-width: 460px; margin-inline: auto; }
   .section { padding: 4rem 0; }
