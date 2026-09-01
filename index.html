@@ -57,6 +57,7 @@
           <a class="more" id="heroMore" href="#fleet">More information <span class="arrow">→</span></a>
         </div>
 
+        <div class="hero-showcase">
         <div class="hero-stage">
           <!-- Static hero photo. Drop a file at assets/hero.jpg to use it; if it
                isn't there the image removes itself and the scene below shows. -->
@@ -99,6 +100,21 @@
         </svg>
           </div>
           <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
+
+          <!-- Call-to-buy, over the dark band. The number is the one set under
+               Website → Footer → Contact, so there is only ever one to edit. -->
+          <div class="hero-call" id="heroCall" hidden>
+            <span class="hero-call-lbl" id="heroCallLbl">Talk to a specialist</span>
+            <a class="hero-call-num" id="heroCallNum" href="tel:08026038780">0802 603 8780</a>
+          </div>
+        </div>
+
+        <!-- Cut-out of a real car, overhanging the capsule. Drop a transparent
+             PNG at assets/hero-car.png; with no file the image removes itself
+             and the capsule keeps its own scene. -->
+        <img class="hero-car" src="assets/hero-car.png" alt="" aria-hidden="true"
+             onerror="this.remove()"
+             onload="this.parentNode.classList.add('has-car')" />
         </div>
 
         <div class="hero-tabs" id="heroTabs">
@@ -112,25 +128,30 @@
 
   <!-- ========================== BOOKING BAR ========================= -->
   <div class="container">
-    <form class="booking" onsubmit="findCar(event)">
+    <!-- Callback request. The old strip was a search that only scrolled the
+         page; this one captures a lead (leads.php) so an enquiry reaches the
+         admin Leads screen instead of asking the visitor to do the work. -->
+    <form class="booking" id="askForm" onsubmit="requestCallback(event)">
       <div class="book-field">
-        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-        <div style="flex:1"><label id="bkLocLabel">Location</label><input type="text" id="bkLocInput" placeholder="Your city or region" /></div>
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <div style="flex:1"><label id="bkNameLabel">Your name</label>
+          <input type="text" id="bkName" name="name" placeholder="Full name" required /></div>
+      </div>
+      <div class="book-field">
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.8 2Z"/></svg></span>
+        <div style="flex:1"><label id="bkPhoneLabel">Phone or WhatsApp</label>
+          <input type="tel" id="bkPhone" name="phone" placeholder="0800 000 0000" required /></div>
       </div>
       <div class="book-field">
         <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg></span>
-        <div style="flex:1"><label id="bkTypeLabel">Car type</label>
-          <select id="bkTypeSel"><option>Any type</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option></select></div>
+        <div style="flex:1"><label id="bkWantLabel">What are you after?</label>
+          <select id="bkWant"><option>A car to buy</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option><option>Joining as a partner</option></select></div>
       </div>
-      <div class="book-field">
-        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-        <div style="flex:1"><label id="bkBudLabel">Budget</label>
-          <select id="bkBudSel"><option>Any budget</option><option>Under ₦25M</option><option>₦25M – ₦40M</option><option>₦40M – ₦60M</option><option>₦60M+</option></select></div>
-      </div>
-      <button class="btn btn-primary" type="submit"><span id="bkBtn">Find a car</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <button class="btn btn-primary" type="submit"><span id="bkBtn">Call me back</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
     </form>
+    <p class="booking-note" id="bkNote">No obligation — a specialist calls you back, usually the same day.</p>
   </div>
 
   <!-- ============================= FLEET ============================ -->
@@ -290,9 +311,50 @@
     })();
 
     // Booking search -> scroll to fleet
-    function findCar(e) {
+    /* Callback request → a lead on the admin Leads screen. Fails soft: if the
+       API is unreachable the visitor is handed the phone number rather than a
+       dead end. */
+    function requestCallback(e) {
       e.preventDefault();
-      document.getElementById('fleet').scrollIntoView({ behavior: 'smooth' });
+      var form = document.getElementById('askForm');
+      var btn  = form.querySelector('button[type=submit]');
+      var note = document.getElementById('bkNote');
+      var name = document.getElementById('bkName').value.trim();
+      var tel  = document.getElementById('bkPhone').value.trim();
+      var want = document.getElementById('bkWant').value;
+      if (!name || !tel) return;
+
+      btn.disabled = true;
+      var label = document.getElementById('bkBtn');
+      var was = label ? label.textContent : '';
+      if (label) label.textContent = 'Sending…';
+
+      fetch('/admin/api/leads.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          customer: name, phone: tel, vehicle: want,
+          note: 'Callback request from the homepage — interested in: ' + want,
+          ref: new URLSearchParams(location.search).get('ref') || ''
+        })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.d || !res.d.ok) throw new Error('rejected');
+          form.innerHTML = '<div class="booking-done">' +
+            '<span class="tick">✓</span><div><b>' + escapeHtml(BOOK_COPY.success_title) + '</b>' +
+            '<small>' + escapeHtml(BOOK_COPY.success_text) + '</small></div></div>';
+          if (note) note.textContent = '';
+        })
+        .catch(function () {
+          btn.disabled = false;
+          if (label) label.textContent = was;
+          if (note) {
+            note.innerHTML = 'That did not send. Please call us on ' +
+              '<a href="' + escAttr(CALL_HREF) + '">' + escapeHtml(CALL_TEXT) + '</a>.';
+            note.classList.add('is-error');
+          }
+        });
     }
 
     // Custom share menu — only social platforms + copy link (no OS share sheet)
@@ -403,6 +465,11 @@
        Everything here degrades to the markup already in this file, so an
        unreachable API or an un-migrated database leaves the page as it is. */
     var CMS_FLEET_EMPTY = 'New inventory is on its way — check back soon.';
+    var BOOK_COPY = {
+      success_title: "Got it — we'll call you back.",
+      success_text: 'A specialist usually reaches out the same day.',
+    };
+    var CALL_HREF = 'tel:08026038780', CALL_TEXT = '0802 603 8780';
     // Board copy, overwritten by the CMS when content.php lands. loadBoard()
     // reads whatever is here at the moment its own fetch resolves.
     var BOARD_COPY = {
@@ -433,6 +500,10 @@
         (b.text ? '<p>' + cmsRich(b.text) + '</p>' : '');
     }
     function cmsFill(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+    function cmsPlaceholder(id, txt) {
+      var el = document.getElementById(id);
+      if (el && txt) el.setAttribute('placeholder', txt);
+    }
     function cmsText(id, txt) { var el = document.getElementById(id); if (el && txt) el.textContent = txt; }
     function cmsOptions(id, list) {
       var el = document.getElementById(id);
@@ -473,6 +544,7 @@
           if (b.cta_href) more.setAttribute('href', b.cta_href);
         }
         // Tabs accept "Label | #target"; a bare label still renders (inert).
+        if (b.call_label) cmsText('heroCallLbl', b.call_label);
         var tabs = cmsLinks(b.tabs);
         if (tabs.length) {
           cmsFill('heroTabs', tabs.map(function (t, i) {
@@ -485,16 +557,18 @@
         }
       }
 
-      /* ---- search bar ---- */
+      /* ---- callback request ---- */
       if ((b = c.booking)) {
-        cmsText('bkLocLabel', b.location_label);
-        var loc = document.getElementById('bkLocInput');
-        if (loc && b.location_ph) loc.setAttribute('placeholder', b.location_ph);
-        cmsText('bkTypeLabel', b.type_label);
-        cmsText('bkBudLabel', b.budget_label);
-        cmsOptions('bkTypeSel', cmsLines(b.types));
-        cmsOptions('bkBudSel', cmsLines(b.budgets));
+        cmsText('bkNameLabel', b.name_label);
+        cmsText('bkPhoneLabel', b.phone_label);
+        cmsText('bkWantLabel', b.want_label);
+        cmsPlaceholder('bkName', b.name_ph);
+        cmsPlaceholder('bkPhone', b.phone_ph);
+        cmsOptions('bkWant', cmsLines(b.wants));
         cmsText('bkBtn', b.btn);
+        cmsText('bkNote', b.note);
+        if (b.success_title) BOOK_COPY.success_title = b.success_title;
+        if (b.success_text)  BOOK_COPY.success_text  = b.success_text;
       }
 
       /* ---- fleet ---- */
@@ -570,6 +644,14 @@
           (b.email ? '<a href="mailto:' + escAttr(b.email) + '">' + escapeHtml(b.email) + '</a>' : '') +
           (b.phone ? '<a href="tel:' + escAttr(String(b.phone).replace(/[^\d+]/g, '')) +
              '">' + escapeHtml(b.phone) + '</a>' : ''));
+        // One number for the whole page: the footer's Contact phone also fills
+        // the hero call-to-action, so there is never a second one to forget.
+        if (b.phone) {
+          CALL_TEXT = String(b.phone);
+          CALL_HREF = 'tel:' + String(b.phone).replace(/[^\d+]/g, '');
+          var cn = document.getElementById('heroCallNum');
+          if (cn) { cn.textContent = CALL_TEXT; cn.setAttribute('href', CALL_HREF); }
+        }
         cmsText('footerCopy', b.copyright);
         cmsText('footerTagline', b.tagline);
       }
@@ -805,6 +887,13 @@
         })
         .catch(function () { /* board is a bonus — a failed fetch leaves it hidden */ });
     }
+    // Shown only when there is a number to call.
+    (function () {
+      var call = document.getElementById('heroCall');
+      var num  = document.getElementById('heroCallNum');
+      if (call && num && num.textContent.trim()) call.hidden = false;
+    })();
+
     loadBoard();
   </script>
 </body>
