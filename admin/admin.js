@@ -987,7 +987,7 @@ function accountModal(u) {
     <div class="form-grid">
       <div class="field"><label>Status</label><select class="input" id="u_status">${['Pending','Active','Suspended'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
       <div class="field"><label>Role</label><select class="input" id="u_role">${['broker','distributor'].map(s => `<option ${s === u.role ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
-      <div class="field full"><label>Broker commission % (blank = use global default)</label><input class="input" id="u_pct" type="number" step="0.5" min="0" max="100" value="${u.commission_pct != null ? u.commission_pct : ''}" placeholder="e.g. 12"></div>
+      <div class="field full"><label>Broker commission % (blank = use global default)</label><input class="input" id="u_pct" type="number" step="0.5" min="0" max="100" value="${u.commission_pct != null ? u.commission_pct : ''}" placeholder="e.g. 2"></div>
     </div>
     <p class="cell-sub">Code: <b>${esc(u.referral_code)}</b> · Joined ${esc(u.joined)} · ${money(u.balance.withdrawable)} withdrawable</p>
     <p class="cell-sub" style="margin-top:.3rem">Payout: ${u.account_number ? `<b>${esc(u.bank_name || '—')}</b> · ${esc(u.account_number)}${u.account_name ? ' · ' + esc(u.account_name) : ''}` : '<i>not provided yet</i>'}</p>
@@ -1016,16 +1016,19 @@ async function viewWithdrawals() {
   }
   const wds = r.withdrawals;
   const pending = wds.filter(w => w.status === 'Requested').length;
-  setTopbar('Withdrawals', `${wds.length} total · ${pending} awaiting action`);
+  // Never-been-paid partners are promised a same-day first payout — surface them.
+  const firsts = wds.filter(w => w.is_first && w.status === 'Requested').length;
+  setTopbar('Withdrawals', `${wds.length} total · ${pending} awaiting action${firsts ? ` · ${firsts} first payout${firsts > 1 ? 's' : ''} due today` : ''}`);
   const stColor = { Requested: 'amber', Approved: 'blue', Paid: 'green', Rejected: 'red' };
 
   $('#view').innerHTML = `
     <div class="panel"><div class="tbl-wrap">
+      ${firsts ? `<div class="banner amber" style="margin:0 0 .9rem"><span>⚡</span><div><b>${firsts} first payout${firsts > 1 ? 's' : ''}</b> waiting. The homepage promises a partner's first withdrawal clears the same day — clear these before the rest.</div></div>` : ''}
       ${wds.length ? `<table class="tbl">
         <thead><tr><th>Account</th><th class="num">Amount</th><th>Method</th><th>Details</th><th>Status</th><th>Requested</th><th></th></tr></thead>
         <tbody>${wds.map(w => `
           <tr>
-            <td><span class="cell-main">${esc(w.user.name)}</span> <span class="pill ${w.user.role === 'broker' ? 'amber' : 'purple'}" style="margin-left:.3rem">${esc(w.user.role)}</span><div class="cell-sub">${esc(w.user.email)}</div></td>
+            <td><span class="cell-main">${esc(w.user.name)}</span> <span class="pill ${w.user.role === 'broker' ? 'amber' : 'purple'}" style="margin-left:.3rem">${esc(w.user.role)}</span>${w.is_first && w.status !== 'Rejected' ? ' <span class="pill green" style="margin-left:.3rem" title="Never been paid — promised same-day">⚡ 1st payout</span>' : ''}<div class="cell-sub">${esc(w.user.email)}</div></td>
             <td class="num cell-main">${money(w.amount)}</td>
             <td class="cell-sub">${esc(w.method)}</td>
             <td class="cell-sub" style="max-width:220px;white-space:normal">${esc(w.detail)}</td>
@@ -1067,15 +1070,21 @@ async function viewSettings() {
       <div class="panel-head"><h3>Economics</h3></div>
       <div class="panel-body">
         <div class="form-grid">
-          <div class="field"><label>Broker commission %</label><input class="input" id="set_rate" type="number" step="0.5" value="${s.broker_rate_pct}"></div>
+          <div class="field"><label>Broker commission %</label><input class="input" id="set_rate" type="number" step="0.1" value="${s.broker_rate_pct}"></div>
+          <div class="field"><label>Minimum commission per sale (₦)</label><input class="input" id="set_mincomm" type="number" value="${s.min_commission_ngn}"></div>
           <div class="field"><label>Points per unique click</label><input class="input" id="set_cp" type="number" value="${s.click_points}"></div>
           <div class="field"><label>₦ value per point</label><input class="input" id="set_pv" type="number" value="${s.point_value_ngn}"></div>
           <div class="field"><label>Distributor sale bonus (₦)</label><input class="input" id="set_bonus" type="number" value="${s.distributor_sale_bonus_ngn}"></div>
           <div class="field"><label>Share reward (₦)</label><input class="input" id="set_sharereward" type="number" value="${s.share_reward_ngn}"></div>
           <div class="field"><label>Max counted shares / day</label><input class="input" id="set_sharecap" type="number" value="${s.max_counted_shares_per_day}"></div>
-          <div class="field full"><label>Minimum withdrawal (₦)</label><input class="input" id="set_min" type="number" value="${s.min_withdrawal_ngn}"></div>
+          <div class="field"><label>Streak length (days) · 0 = off</label><input class="input" id="set_streakdays" type="number" value="${s.share_streak_days}"></div>
+          <div class="field"><label>Counted shares / day on a streak</label><input class="input" id="set_streakcap" type="number" value="${s.max_counted_shares_streak}"></div>
+          <div class="field"><label>Minimum withdrawal (₦)</label><input class="input" id="set_min" type="number" value="${s.min_withdrawal_ngn}"></div>
+          <div class="field"><label>First payout same-day</label><select class="input" id="set_firstpay"><option value="1" ${+s.first_payout_same_day ? 'selected' : ''}>On — advertise + flag it</option><option value="0" ${+s.first_payout_same_day ? '' : 'selected'}>Off</option></select></div>
         </div>
-        <p class="cell-sub">Share reward is paid per counted share (up to the daily cap) and unlocks when a car the partner shared is sold.</p>
+        <p class="cell-sub">Share reward is paid per counted share (up to the daily cap) and unlocks when a car the partner shared is sold. A partner who shares <b>${+s.share_streak_days || 7} days running</b> gets <b>${+s.max_counted_shares_streak || 4}</b> counted shares a day instead of ${+s.max_counted_shares_per_day || 2}.</p>
+        <p class="cell-sub">The <b>minimum commission</b> is a floor, not a bonus: a sale worth less than ₦${((+s.min_commission_ngn || 0) / (+s.broker_rate_pct || 1) * 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })} pays the floor instead of the percentage. Set it to 0 to pay strictly by percentage.</p>
+        <p class="cell-sub">With <b>first payout same-day</b> on, a partner who has never been paid is flagged <span class="pill amber">1st payout</span> on the Withdrawals screen — clear those the day they arrive.</p>
         <button class="btn btn-primary" id="saveSet">Save settings</button>
       </div>
     </div>
@@ -1101,7 +1110,9 @@ async function viewSettings() {
           <div class="field"><label>Number of winners</label><input class="input" id="set_lbwin" type="number" value="${s.leaderboard_winners}"></div>
           <div class="field"><label>Split method</label><select class="input" id="set_lbsplit"><option value="1" ${+s.leaderboard_split_weighted ? 'selected' : ''}>By clicks (weighted)</option><option value="0" ${+s.leaderboard_split_weighted ? '' : 'selected'}>Equal shares</option></select></div>
           <div class="field"><label>Min unique clicks to qualify</label><input class="input" id="set_lbmin" type="number" value="${s.leaderboard_min_clicks}"></div>
+          <div class="field full"><label>Live board on the homepage</label><select class="input" id="set_lbpublic"><option value="1" ${+s.leaderboard_public ? 'selected' : ''}>Show the top 10 publicly</option><option value="0" ${+s.leaderboard_public ? '' : 'selected'}>Hide it</option></select></div>
         </div>
+        <p class="cell-sub">The public board shows rank, a shortened name (<b>Adaeze O.</b>) and click count only — never payouts, emails or referral codes. Edit its wording under <b>Website → Top-sharer board</b>.</p>
         <button class="btn btn-primary" id="saveLb">Save bonus settings</button>
       </div>
     </div>
@@ -1129,6 +1140,8 @@ async function viewSettings() {
       broker_rate_pct: +$('#set_rate').value, click_points: +$('#set_cp').value,
       point_value_ngn: +$('#set_pv').value, distributor_sale_bonus_ngn: +$('#set_bonus').value,
       share_reward_ngn: +$('#set_sharereward').value, max_counted_shares_per_day: +$('#set_sharecap').value,
+      share_streak_days: +$('#set_streakdays').value, max_counted_shares_streak: +$('#set_streakcap').value,
+      min_commission_ngn: +$('#set_mincomm').value, first_payout_same_day: +$('#set_firstpay').value,
       min_withdrawal_ngn: +$('#set_min').value } });
     toast('Settings saved', 'ok');
   });
@@ -1155,7 +1168,8 @@ async function viewSettings() {
       leaderboard_pool_ngn: +$('#set_lbpool').value,
       leaderboard_winners: +$('#set_lbwin').value,
       leaderboard_split_weighted: +$('#set_lbsplit').value,
-      leaderboard_min_clicks: +$('#set_lbmin').value } });
+      leaderboard_min_clicks: +$('#set_lbmin').value,
+      leaderboard_public: +$('#set_lbpublic').value } });
     toast('Bonus settings saved', 'ok');
   });
   $('#runMig3').addEventListener('click', runMigration);
@@ -1186,7 +1200,8 @@ const CMS_BLOCKS = [
     { k: 'lead',      l: 'Sub-heading', t: 'area', w: 'full', rows: 2 },
     { k: 'cta_label', l: 'Link text', t: 'text' },
     { k: 'cta_href',  l: 'Link target', t: 'text' },
-    { k: 'tabs',      l: 'Hero tabs', t: 'lines', w: 'full', rows: 3, hint: 'One tab per line.' },
+    { k: 'tabs',      l: 'Hero tabs', t: 'lines', w: 'full', rows: 3,
+      hint: 'One per line, as  Label | link  — e.g.  Share & earn | #share' },
   ]},
 
   { key: 'booking', title: 'Search bar', hint: 'The find-a-car strip under the hero.', fields: [
@@ -1223,6 +1238,17 @@ const CMS_BLOCKS = [
       { k: 'v', l: 'Amount', t: 'text' },
       { k: 'k', l: 'Caption', t: 'text' },
     ]},
+  ]},
+
+  { key: 'board', title: 'Top-sharer board',
+    hint: 'The live board on the homepage. Turn it on or off under Settings → Top-sharer bonus.', fields: [
+    { k: 'kicker',      l: 'Kicker', t: 'text' },
+    { k: 'title',       l: 'Heading', t: 'text' },
+    { k: 'title_em',    l: 'Heading — highlighted', t: 'text' },
+    { k: 'title_after', l: 'Heading — after highlight', t: 'text' },
+    { k: 'text',        l: 'Intro text', t: 'area', w: 'full', rows: 2 },
+    { k: 'empty',       l: 'Message when nobody has ranked yet', t: 'area', w: 'full', rows: 2 },
+    { k: 'prize_note',  l: 'Prize caption', t: 'text', w: 'full' },
   ]},
 
   { key: 'tiers', title: 'Partner tiers', fields: [

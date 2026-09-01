@@ -112,7 +112,8 @@ CREATE TABLE IF NOT EXISTS `settings` (
 
 -- Tunable economics (admin-editable). INSERT IGNORE keeps existing values.
 INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
-  ('broker_rate_pct',            '12'),      -- broker commission %
+  ('broker_rate_pct',            '2'),       -- broker commission %
+  ('min_commission_ngn',         '250000'),  -- floor: a broker never earns less than this on a sale
   ('click_points',               '5'),       -- points per unique click (distributor)
   ('point_value_ngn',            '50'),      -- ₦ per point
   ('distributor_sale_bonus_ngn', '25000'),   -- ₦ bonus when a shared car sells
@@ -121,12 +122,16 @@ INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
   ('click_unlock_cap_pct',       '20'),      -- anti-fraud: unlock click points up to this % of sale value
   ('share_reward_ngn',           '800'),     -- ₦ per counted share (pending until a shared car sells)
   ('max_counted_shares_per_day', '2'),       -- shares that count toward the reward per user per day
+  ('share_streak_days',          '7'),       -- consecutive sharing days that unlock the raised cap (0 = off)
+  ('max_counted_shares_streak',  '4'),       -- raised daily cap once the streak is reached
   ('share_unlock_cap_pct',       '5'),       -- anti-fraud: unlock share rewards up to this % of sale value
   -- Top-sharer leaderboard bonus (paid regardless of a sale; cost is capped by the pool).
   ('leaderboard_pool_ngn',       '0'),       -- fixed ₦ pool per month (0 = feature off)
   ('leaderboard_winners',        '5'),       -- how many top sharers share the pool
   ('leaderboard_split_weighted', '1'),       -- 1 = split by clicks, 0 = equal shares
-  ('leaderboard_min_clicks',     '1');       -- minimum capped unique clicks to qualify
+  ('leaderboard_min_clicks',     '1'),       -- minimum capped unique clicks to qualify
+  ('leaderboard_public',         '1'),       -- 1 = show the live top-sharer board on the homepage
+  ('first_payout_same_day',      '1');       -- 1 = advertise + flag same-day processing on a partner's first payout
 
 -- Ready-to-use demo accounts (already Active). Passwords:
 --   broker@nejautos.com      → BrokerDemo2026

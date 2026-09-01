@@ -206,6 +206,48 @@ function car_dest_url(array $car, string $ref = '', string $by = 'NEJ Autos'): s
 }
 
 /* ==========================================================================
+   Sharing streak — how many consecutive days (ending today, or yesterday if
+   nothing has counted yet today) this user has landed at least one counted
+   share. Drives the raised daily share cap, so sharing becomes a habit rather
+   than a two-taps-and-done chore. Returns 0 when the streak is broken.
+   ========================================================================== */
+function share_streak(int $userId): int {
+    if ($userId <= 0) return 0;
+    try {
+        $q = db()->prepare(
+            "SELECT DISTINCT DATE(created_at) d FROM shares
+             WHERE user_id = :u AND counted = 1 AND created_at >= (CURDATE() - INTERVAL 400 DAY)
+             ORDER BY d DESC");
+        $q->execute([':u' => $userId]);
+        $days = array_column($q->fetchAll(), 'd');
+    } catch (Throwable $e) { return 0; }   // pre-migration shares table
+    if (!$days) return 0;
+
+    $today  = new DateTimeImmutable('today');
+    $cursor = ($days[0] === $today->format('Y-m-d')) ? $today : $today->modify('-1 day');
+    if ($days[0] !== $cursor->format('Y-m-d')) return 0;    // last counted share is older than yesterday
+
+    $streak = 0;
+    foreach ($days as $d) {
+        if ($d !== $cursor->format('Y-m-d')) break;
+        $streak++;
+        $cursor = $cursor->modify('-1 day');
+    }
+    return $streak;
+}
+
+/** Today's counted-share allowance for a user — raised once the streak lands. */
+function share_cap_for(int $userId): array {
+    $base   = (int)setting('max_counted_shares_per_day', '2');
+    $need   = (int)setting('share_streak_days', '7');
+    $raised = (int)setting('max_counted_shares_streak', '4');
+    $streak = share_streak($userId);
+    $on     = ($need > 0 && $raised > $base && $streak >= $need);
+    return ['cap' => $on ? $raised : $base, 'base' => $base, 'raised' => $raised,
+            'need' => $need, 'streak' => $streak, 'boosted' => $on];
+}
+
+/* ==========================================================================
    Sale settlement — runs when a lead becomes 'Won'. Idempotent per lead.
    Broker  → commission = sale value × rate.
    Distributor → sale bonus + unlock that car's pending click points.
@@ -249,13 +291,25 @@ function settle_sale(int $leadId): void {
     if ($user['role'] === 'broker') {
         $rate = $user['commission_pct'] !== null
             ? (float)$user['commission_pct']
-            : (float)setting('broker_rate_pct', '12');
+            : (float)setting('broker_rate_pct', '2');
         $amount = (int)round($saleValue * $rate / 100);
+        $pct    = rtrim(rtrim(number_format($rate, 2), '0'), '.') . '%';
+        $note   = 'Commission ' . $pct . ' of ' . money_ngn($saleValue);
+
+        // Commission floor: a percentage alone pays badly on cheap inventory, so
+        // every closed sale earns at least this much regardless of the car's price.
+        $floor = (int)setting('min_commission_ngn', '250000');
+        if ($floor > 0 && $amount < $floor) {
+            $note   = 'Commission — minimum ' . money_ngn($floor) . ' guarantee (' .
+                      $pct . ' of ' . money_ngn($saleValue) . ' = ' . money_ngn($amount) . ')';
+            $amount = $floor;
+        }
+
         $pdo->prepare(
             'INSERT INTO ledger (user_id,type,amount,status,car_id,lead_id,week,note)
              VALUES (:u,\'sale_commission\',:a,\'available\',:c,:l,:w,:n)'
         )->execute([':u' => $user['id'], ':a' => $amount, ':c' => $carId, ':l' => $leadId, ':w' => $week,
-                    ':n' => 'Commission ' . rtrim(rtrim(number_format($rate, 2), '0'), '.') . '% of ' . money_ngn($saleValue)]);
+                    ':n' => $note]);
     } else { // distributor
         $bonus = (int)setting('distributor_sale_bonus_ngn', '25000');
         $pdo->prepare(

@@ -54,6 +54,12 @@ try {
     $ins->execute([':k' => 'leaderboard_split_weighted', ':v' => '1']);
     $ins->execute([':k' => 'leaderboard_min_clicks', ':v' => '1']);
     $ins->execute([':k' => 'hero_autoplay_ms', ':v' => '6000']);
+    // Participation economics (streak cap, commission floor, public board, first-payout perk).
+    $ins->execute([':k' => 'min_commission_ngn', ':v' => '250000']);
+    $ins->execute([':k' => 'share_streak_days', ':v' => '7']);
+    $ins->execute([':k' => 'max_counted_shares_streak', ':v' => '4']);
+    $ins->execute([':k' => 'leaderboard_public', ':v' => '1']);
+    $ins->execute([':k' => 'first_payout_same_day', ':v' => '1']);
 } catch (Throwable $e) {
     json_err('Share-tracking migration failed: ' . $e->getMessage(), 500);
 }

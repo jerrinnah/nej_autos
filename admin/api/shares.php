@@ -49,8 +49,10 @@ if (method() === 'POST' && (string)param('_delete', '') !== '1') {
             if ($row) $carId = (int)$row['car_id']; else $linkId = null;
         }
 
-        // Counts up to N/day, and at most once per car per day.
-        $cap = (int)setting('max_counted_shares_per_day', '2');
+        // Counts up to N/day, and at most once per car per day. N rises once the
+        // user has a sharing streak going (see share_cap_for / share_streak).
+        $allow = share_cap_for($userId);
+        $cap   = $allow['cap'];
         $todayCounted = (int)db()->query(
             "SELECT COUNT(*) FROM shares WHERE user_id=$userId AND counted=1 AND DATE(created_at)=CURDATE()"
         )->fetchColumn();
@@ -92,7 +94,9 @@ if (method() === 'POST' && (string)param('_delete', '') !== '1') {
         }
     }
 
-    json_out(['ok' => true, 'id' => $shareId, 'counted' => (bool)$counted, 'created' => true], 201);
+    json_out(['ok' => true, 'id' => $shareId, 'counted' => (bool)$counted, 'created' => true]
+        + ($user ? ['streak' => $allow['streak'], 'cap' => $cap, 'boosted' => $allow['boosted'],
+                    'today' => $todayCounted + $counted] : []), 201);
 }
 
 /* ---- admin below ---- */
