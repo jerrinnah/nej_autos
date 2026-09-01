@@ -1202,16 +1202,22 @@ const CMS_BLOCKS = [
     { k: 'cta_href',  l: 'Link target', t: 'text' },
     { k: 'tabs',      l: 'Hero tabs', t: 'lines', w: 'full', rows: 3,
       hint: 'One per line, as  Label | link  — e.g.  Share & earn | #share' },
+    { k: 'call_label', l: 'Call-to-action label', t: 'text', w: 'full',
+      hint: 'Sits above the phone number on the hero. The NUMBER itself comes from Footer → Contact phone.' },
   ]},
 
-  { key: 'booking', title: 'Search bar', hint: 'The find-a-car strip under the hero.', fields: [
-    { k: 'location_label', l: 'Location label', t: 'text' },
-    { k: 'location_ph',    l: 'Location placeholder', t: 'text' },
-    { k: 'type_label',     l: 'Car type label', t: 'text' },
-    { k: 'budget_label',   l: 'Budget label', t: 'text' },
-    { k: 'types',          l: 'Car type options', t: 'lines', rows: 6, hint: 'One per line.' },
-    { k: 'budgets',        l: 'Budget options',  t: 'lines', rows: 6, hint: 'One per line.' },
-    { k: 'btn',            l: 'Button text', t: 'text', w: 'full' },
+  { key: 'booking', title: 'Callback request',
+    hint: 'The card overlapping the hero. Every submission arrives on the Leads screen.', fields: [
+    { k: 'name_label',    l: 'Name label', t: 'text' },
+    { k: 'name_ph',       l: 'Name placeholder', t: 'text' },
+    { k: 'phone_label',   l: 'Phone label', t: 'text' },
+    { k: 'phone_ph',      l: 'Phone placeholder', t: 'text' },
+    { k: 'want_label',    l: 'Interest label', t: 'text' },
+    { k: 'wants',         l: 'Interest options', t: 'lines', rows: 7, hint: 'One per line.' },
+    { k: 'btn',           l: 'Button text', t: 'text' },
+    { k: 'note',          l: 'Note under the card', t: 'area', w: 'full', rows: 2 },
+    { k: 'success_title', l: 'Thank-you headline', t: 'text' },
+    { k: 'success_text',  l: 'Thank-you text', t: 'text' },
   ]},
 
   { key: 'fleet', title: 'Fleet section', hint: 'Heading above the live inventory grid.', fields: [

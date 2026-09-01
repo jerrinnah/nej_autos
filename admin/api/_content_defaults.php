@@ -31,20 +31,28 @@ return [
 'hero' => [
     'headline'  => "The car is\nwaiting for you",
     'lead'      => 'Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.',
-    'cta_label' => 'More information',
+    // Blank by default: the hero already has the tabs and the callback card, so
+    // a third link here only splits the click. Set a label to bring it back.
+    'cta_label' => '',
     'cta_href'  => '#fleet',
     'tabs'      => "Buy a car | #fleet\nShare & earn | #share\nBecome a partner | #apply",
+    'call_label'=> 'Talk to a specialist',
 ],
 
-/* ------------------------------ booking bar ----------------------------- */
+/* --------------------------- callback request ---------------------------- */
+/* The card that overlaps the hero. A submission creates a lead (leads.php) and
+   lands on the admin Leads screen. */
 'booking' => [
-    'location_label' => 'Location',
-    'location_ph'    => 'Your city or region',
-    'type_label'     => 'Car type',
-    'types'          => "Any type\nSedan\nSUV\nElectric\nTruck\nPremium",
-    'budget_label'   => 'Budget',
-    'budgets'        => "Any budget\nUnder ₦25M\n₦25M – ₦40M\n₦40M – ₦60M\n₦60M+",
-    'btn'            => 'Find a car',
+    'name_label'    => 'Your name',
+    'name_ph'       => 'Full name',
+    'phone_label'   => 'Phone or WhatsApp',
+    'phone_ph'      => '0800 000 0000',
+    'want_label'    => 'What are you after?',
+    'wants'         => "A car to buy\nSedan\nSUV\nElectric\nTruck\nPremium\nJoining as a partner",
+    'btn'           => 'Call me back',
+    'note'          => 'No obligation — a specialist calls you back, usually the same day.',
+    'success_title' => "Got it — we'll call you back.",
+    'success_text'  => 'A specialist usually reaches out the same day.',
 ],
 
 /* --------------------------------- fleet -------------------------------- */

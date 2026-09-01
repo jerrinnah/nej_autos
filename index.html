@@ -49,56 +49,84 @@
        Copy sits above a capsule stage. The stage holds the fallback
        scene below, and the CMS slider paints over it when slides exist. -->
   <header class="hero">
+    <!-- Full-bleed backdrop. Outside .container so it can span the viewport,
+         and a direct child of .hero so inset:0 means the whole hero. -->
+    <div class="hero-showcase">
+      <div class="hero-stage">
+      <!-- Static hero photo. Drop a file at assets/hero.jpg to use it; if it
+           isn't there the image removes itself and the scene below shows. -->
+      <img class="hero-photo" src="assets/hero.jpg" alt="" aria-hidden="true"
+           onerror="this.remove()" />
+      <div class="hero-scene" aria-hidden="true">
+    <svg viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#2b2d33"/><stop offset="1" stop-color="#141519"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#3b3e45"/><stop offset="1" stop-color="#212328"/>
+    </linearGradient>
+    </defs>
+    <rect width="1440" height="720" fill="url(#ocean)"/>
+    <!-- waves -->
+    <g stroke="#ffffff" stroke-opacity="0.05" fill="none" stroke-width="2">
+    <path d="M-20 120 C 180 90, 320 150, 520 120"/>
+    <path d="M-20 220 C 200 190, 340 250, 560 210"/>
+    <path d="M-20 330 C 180 300, 300 360, 520 330"/>
+    <path d="M-20 450 C 160 420, 300 480, 500 450"/>
+    <path d="M-20 560 C 180 530, 320 590, 520 560"/>
+    </g>
+    <!-- coastline / land on the right -->
+    <path d="M1440 0 L1440 720 L640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0 Z" fill="url(#land)"/>
+    <!-- sandy shore edge -->
+    <path d="M640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0"
+    fill="none" stroke="#e0592b" stroke-opacity="0.35" stroke-width="10"/>
+    <!-- road ribbon -->
+    <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
+    fill="none" stroke="#3c3c3f" stroke-width="46" stroke-linecap="round"/>
+    <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
+    fill="none" stroke="#e9e2cf" stroke-opacity="0.65" stroke-width="3" stroke-dasharray="14 18"/>
+    <!-- car -->
+    <g transform="translate(999 322) rotate(38)">
+    <rect x="-11" y="-20" width="22" height="40" rx="6" fill="#e0592b"/>
+    <rect x="-8" y="-12" width="16" height="12" rx="3" fill="#ffd9cb" fill-opacity="0.8"/>
+    </g>
+    </svg>
+      </div>
+      <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
+
+      <!-- Names whatever car the stage is currently showing. Filled by
+           dressHero() only when the photo came from live inventory. -->
+      <a class="hero-feature" id="heroFeature" href="#fleet" hidden>
+        <span class="hero-feature-name" id="heroFeatureName"></span>
+        <span class="hero-feature-price" id="heroFeaturePrice"></span>
+        <span class="hero-feature-go">View this car <span class="arrow">→</span></span>
+      </a>
+
+    </div>
+
+    <!-- Cut-out of a real car, overhanging the capsule. Drop a transparent
+         PNG at assets/hero-car.png; with no file the image removes itself
+         and the capsule keeps its own scene. -->
+    <img class="hero-car" src="assets/hero-car.png" alt="" aria-hidden="true"
+         onerror="this.remove()"
+         onload="this.parentNode.classList.add('has-car')" />
+    </div>
     <div class="container">
       <div class="hero-inner" id="heroInner">
         <div class="hero-copy" id="heroCopy">
           <h1 id="heroH1">Your next car</h1>
           <p class="lead" id="heroLead">Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.</p>
-          <a class="more" id="heroMore" href="#fleet">More information <span class="arrow">→</span></a>
-        </div>
-
-        <div class="hero-stage">
-          <!-- Static hero photo. Drop a file at assets/hero.jpg to use it; if it
-               isn't there the image removes itself and the scene below shows. -->
-          <img class="hero-photo" src="assets/hero.jpg" alt="" aria-hidden="true"
-               onerror="this.remove()" />
-          <div class="hero-scene" aria-hidden="true">
-        <svg viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-        <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#2b2d33"/><stop offset="1" stop-color="#141519"/>
-        </linearGradient>
-        <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#3b3e45"/><stop offset="1" stop-color="#212328"/>
-        </linearGradient>
-        </defs>
-        <rect width="1440" height="720" fill="url(#ocean)"/>
-        <!-- waves -->
-        <g stroke="#ffffff" stroke-opacity="0.05" fill="none" stroke-width="2">
-        <path d="M-20 120 C 180 90, 320 150, 520 120"/>
-        <path d="M-20 220 C 200 190, 340 250, 560 210"/>
-        <path d="M-20 330 C 180 300, 300 360, 520 330"/>
-        <path d="M-20 450 C 160 420, 300 480, 500 450"/>
-        <path d="M-20 560 C 180 530, 320 590, 520 560"/>
-        </g>
-        <!-- coastline / land on the right -->
-        <path d="M1440 0 L1440 720 L640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0 Z" fill="url(#land)"/>
-        <!-- sandy shore edge -->
-        <path d="M640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0"
-        fill="none" stroke="#e0592b" stroke-opacity="0.35" stroke-width="10"/>
-        <!-- road ribbon -->
-        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
-        fill="none" stroke="#3c3c3f" stroke-width="46" stroke-linecap="round"/>
-        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
-        fill="none" stroke="#e9e2cf" stroke-opacity="0.65" stroke-width="3" stroke-dasharray="14 18"/>
-        <!-- car -->
-        <g transform="translate(999 322) rotate(38)">
-        <rect x="-11" y="-20" width="22" height="40" rx="6" fill="#e0592b"/>
-        <rect x="-8" y="-12" width="16" height="12" rx="3" fill="#ffd9cb" fill-opacity="0.8"/>
-        </g>
-        </svg>
+          <!-- Hidden unless a slide (or the hero block) supplies a link. The
+               static "More information" default is gone: it competed with the
+               tabs and the callback form for the same click. -->
+          <a class="more" id="heroMore" href="#fleet" hidden>More information <span class="arrow">→</span></a>
+          <!-- Call-to-buy. The number is the one set under Website → Footer →
+               Contact, so there is only ever one to edit. -->
+          <div class="hero-call" id="heroCall" hidden>
+            <span class="hero-call-lbl" id="heroCallLbl">Talk to a specialist</span>
+            <a class="hero-call-num" id="heroCallNum" href="tel:08026038780">0802 603 8780</a>
           </div>
-          <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
         </div>
 
         <div class="hero-tabs" id="heroTabs">
@@ -112,25 +140,30 @@
 
   <!-- ========================== BOOKING BAR ========================= -->
   <div class="container">
-    <form class="booking" onsubmit="findCar(event)">
+    <!-- Callback request. The old strip was a search that only scrolled the
+         page; this one captures a lead (leads.php) so an enquiry reaches the
+         admin Leads screen instead of asking the visitor to do the work. -->
+    <form class="booking" id="askForm" onsubmit="requestCallback(event)">
       <div class="book-field">
-        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
-        <div style="flex:1"><label id="bkLocLabel">Location</label><input type="text" id="bkLocInput" placeholder="Your city or region" /></div>
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <div style="flex:1"><label id="bkNameLabel">Your name</label>
+          <input type="text" id="bkName" name="name" placeholder="Full name" required /></div>
+      </div>
+      <div class="book-field">
+        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.8 2Z"/></svg></span>
+        <div style="flex:1"><label id="bkPhoneLabel">Phone or WhatsApp</label>
+          <input type="tel" id="bkPhone" name="phone" placeholder="0800 000 0000" required /></div>
       </div>
       <div class="book-field">
         <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17H3v-5l2-5h11l3 5v5h-2"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg></span>
-        <div style="flex:1"><label id="bkTypeLabel">Car type</label>
-          <select id="bkTypeSel"><option>Any type</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option></select></div>
+        <div style="flex:1"><label id="bkWantLabel">What are you after?</label>
+          <select id="bkWant"><option>A car to buy</option><option>Sedan</option><option>SUV</option><option>Electric</option><option>Truck</option><option>Premium</option><option>Joining as a partner</option></select></div>
       </div>
-      <div class="book-field">
-        <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
-        <div style="flex:1"><label id="bkBudLabel">Budget</label>
-          <select id="bkBudSel"><option>Any budget</option><option>Under ₦25M</option><option>₦25M – ₦40M</option><option>₦40M – ₦60M</option><option>₦60M+</option></select></div>
-      </div>
-      <button class="btn btn-primary" type="submit"><span id="bkBtn">Find a car</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <button class="btn btn-primary" type="submit"><span id="bkBtn">Call me back</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
     </form>
+    <p class="booking-note" id="bkNote">No obligation — a specialist calls you back, usually the same day.</p>
   </div>
 
   <!-- ============================= FLEET ============================ -->
@@ -290,9 +323,50 @@
     })();
 
     // Booking search -> scroll to fleet
-    function findCar(e) {
+    /* Callback request → a lead on the admin Leads screen. Fails soft: if the
+       API is unreachable the visitor is handed the phone number rather than a
+       dead end. */
+    function requestCallback(e) {
       e.preventDefault();
-      document.getElementById('fleet').scrollIntoView({ behavior: 'smooth' });
+      var form = document.getElementById('askForm');
+      var btn  = form.querySelector('button[type=submit]');
+      var note = document.getElementById('bkNote');
+      var name = document.getElementById('bkName').value.trim();
+      var tel  = document.getElementById('bkPhone').value.trim();
+      var want = document.getElementById('bkWant').value;
+      if (!name || !tel) return;
+
+      btn.disabled = true;
+      var label = document.getElementById('bkBtn');
+      var was = label ? label.textContent : '';
+      if (label) label.textContent = 'Sending…';
+
+      fetch('/admin/api/leads.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          customer: name, phone: tel, vehicle: want,
+          note: 'Callback request from the homepage — interested in: ' + want,
+          ref: new URLSearchParams(location.search).get('ref') || ''
+        })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (!res.ok || !res.d || !res.d.ok) throw new Error('rejected');
+          form.innerHTML = '<div class="booking-done">' +
+            '<span class="tick">✓</span><div><b>' + escapeHtml(BOOK_COPY.success_title) + '</b>' +
+            '<small>' + escapeHtml(BOOK_COPY.success_text) + '</small></div></div>';
+          if (note) note.textContent = '';
+        })
+        .catch(function () {
+          btn.disabled = false;
+          if (label) label.textContent = was;
+          if (note) {
+            note.innerHTML = 'That did not send. Please call us on ' +
+              '<a href="' + escAttr(CALL_HREF) + '">' + escapeHtml(CALL_TEXT) + '</a>.';
+            note.classList.add('is-error');
+          }
+        });
     }
 
     // Custom share menu — only social platforms + copy link (no OS share sheet)
@@ -403,6 +477,11 @@
        Everything here degrades to the markup already in this file, so an
        unreachable API or an un-migrated database leaves the page as it is. */
     var CMS_FLEET_EMPTY = 'New inventory is on its way — check back soon.';
+    var BOOK_COPY = {
+      success_title: "Got it — we'll call you back.",
+      success_text: 'A specialist usually reaches out the same day.',
+    };
+    var CALL_HREF = 'tel:08026038780', CALL_TEXT = '0802 603 8780';
     // Board copy, overwritten by the CMS when content.php lands. loadBoard()
     // reads whatever is here at the moment its own fetch resolves.
     var BOARD_COPY = {
@@ -433,6 +512,10 @@
         (b.text ? '<p>' + cmsRich(b.text) + '</p>' : '');
     }
     function cmsFill(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+    function cmsPlaceholder(id, txt) {
+      var el = document.getElementById(id);
+      if (el && txt) el.setAttribute('placeholder', txt);
+    }
     function cmsText(id, txt) { var el = document.getElementById(id); if (el && txt) el.textContent = txt; }
     function cmsOptions(id, list) {
       var el = document.getElementById(id);
@@ -468,11 +551,15 @@
         if (h1 && b.headline) h1.innerHTML = escapeHtml(b.headline).replace(/\n/g, '<br>');
         cmsText('heroLead', b.lead);
         var more = document.getElementById('heroMore');
-        if (more && b.cta_label) {
-          more.innerHTML = escapeHtml(b.cta_label) + ' <span class="arrow">→</span>';
-          if (b.cta_href) more.setAttribute('href', b.cta_href);
+        if (more) {
+          if (b.cta_label) {
+            more.innerHTML = escapeHtml(b.cta_label) + ' <span class="arrow">→</span>';
+            if (b.cta_href) more.setAttribute('href', b.cta_href);
+          }
+          more.hidden = !b.cta_label;
         }
         // Tabs accept "Label | #target"; a bare label still renders (inert).
+        if (b.call_label) cmsText('heroCallLbl', b.call_label);
         var tabs = cmsLinks(b.tabs);
         if (tabs.length) {
           cmsFill('heroTabs', tabs.map(function (t, i) {
@@ -485,16 +572,18 @@
         }
       }
 
-      /* ---- search bar ---- */
+      /* ---- callback request ---- */
       if ((b = c.booking)) {
-        cmsText('bkLocLabel', b.location_label);
-        var loc = document.getElementById('bkLocInput');
-        if (loc && b.location_ph) loc.setAttribute('placeholder', b.location_ph);
-        cmsText('bkTypeLabel', b.type_label);
-        cmsText('bkBudLabel', b.budget_label);
-        cmsOptions('bkTypeSel', cmsLines(b.types));
-        cmsOptions('bkBudSel', cmsLines(b.budgets));
+        cmsText('bkNameLabel', b.name_label);
+        cmsText('bkPhoneLabel', b.phone_label);
+        cmsText('bkWantLabel', b.want_label);
+        cmsPlaceholder('bkName', b.name_ph);
+        cmsPlaceholder('bkPhone', b.phone_ph);
+        cmsOptions('bkWant', cmsLines(b.wants));
         cmsText('bkBtn', b.btn);
+        cmsText('bkNote', b.note);
+        if (b.success_title) BOOK_COPY.success_title = b.success_title;
+        if (b.success_text)  BOOK_COPY.success_text  = b.success_text;
       }
 
       /* ---- fleet ---- */
@@ -570,6 +659,14 @@
           (b.email ? '<a href="mailto:' + escAttr(b.email) + '">' + escapeHtml(b.email) + '</a>' : '') +
           (b.phone ? '<a href="tel:' + escAttr(String(b.phone).replace(/[^\d+]/g, '')) +
              '">' + escapeHtml(b.phone) + '</a>' : ''));
+        // One number for the whole page: the footer's Contact phone also fills
+        // the hero call-to-action, so there is never a second one to forget.
+        if (b.phone) {
+          CALL_TEXT = String(b.phone);
+          CALL_HREF = 'tel:' + String(b.phone).replace(/[^\d+]/g, '');
+          var cn = document.getElementById('heroCallNum');
+          if (cn) { cn.textContent = CALL_TEXT; cn.setAttribute('href', CALL_HREF); }
+        }
         cmsText('footerCopy', b.copyright);
         cmsText('footerTagline', b.tagline);
       }
@@ -587,6 +684,10 @@
       if (scene) scene.style.display = 'none';
       var photo = document.querySelector('.hero-photo');
       if (photo) photo.style.display = 'none';
+      // The two fetches race: inventory may have dressed the stage before the
+      // slides arrived. Slides win, so retire the caption that named that car.
+      var feat = document.getElementById('heroFeature');
+      if (feat) feat.hidden = true;
       hero.classList.add('has-slider');
 
       host.innerHTML = slides.map(function (s, i) {
@@ -612,18 +713,31 @@
       var dots   = ctrl.querySelectorAll('.hero-dot');
       var cur = -1, timer = null;
 
+      // A slide that supplies no headline should inherit the hero block's,
+      // not blank it — an image-only slide otherwise leaves the page wordless.
+      var baseH1   = (document.getElementById('heroH1')   || {}).innerHTML || '';
+      var baseLead = (document.getElementById('heroLead') || {}).textContent || '';
+
       function paint(s) {
         var h1 = document.getElementById('heroH1');
-        if (h1) h1.innerHTML = escapeHtml(s.title || '').replace(/\n/g, '<br>');
+        if (h1) {
+          h1.innerHTML = s.title
+            ? escapeHtml(s.title).replace(/\n/g, '<br>')
+            : baseH1;
+        }
         var lead = document.getElementById('heroLead');
-        if (lead) { lead.textContent = s.subtitle || ''; lead.style.display = s.subtitle ? '' : 'none'; }
+        if (lead) {
+          var txt = s.subtitle || baseLead;
+          lead.textContent = txt;
+          lead.style.display = txt ? '' : 'none';
+        }
         var more = document.getElementById('heroMore');
         if (more) {
           if (s.cta_label) {
             more.innerHTML = escapeHtml(s.cta_label) + ' <span class="arrow">→</span>';
             more.setAttribute('href', s.cta_href || '#fleet');
-            more.style.display = '';
-          } else { more.style.display = 'none'; }
+          }
+          more.hidden = !s.cta_label;
         }
         inner.classList.toggle('is-center', s.align === 'center');
         hero.classList.toggle('is-center', s.align === 'center');
@@ -735,6 +849,46 @@
       '</article>';
     }
 
+    /* The hero capsule, dressed from real stock.
+       Priority: CMS slides > assets/hero.jpg > newest car's photo > the drawn
+       scene. Nobody has to upload anything for the hero to show a real car —
+       the inventory that is already there does the job, and it stays current
+       as stock changes. */
+    function dressHero(cars) {
+      var stage = document.querySelector('.hero-stage');
+      if (!stage) return;
+      // A live slider or a hand-picked hero photo both outrank inventory.
+      if (document.querySelector('.hero-slide')) return;
+      if (document.querySelector('.hero-photo')) return;
+
+      var pick = null;
+      for (var i = 0; i < cars.length; i++) {
+        var c = cars[i];
+        if (!c.photos || !c.photos.length) continue;
+        if (!pick) pick = c;
+        if (c.featured) { pick = c; break; }     // a featured car wins outright
+      }
+      if (!pick) return;                          // no photography yet — keep the scene
+
+      var img = document.createElement('img');
+      img.className = 'hero-photo is-live';
+      img.setAttribute('alt', '');
+      img.setAttribute('aria-hidden', 'true');
+      img.src = pick.photos[0];
+      img.onerror = function () { img.remove(); };
+      stage.insertBefore(img, stage.firstChild);
+      stage.classList.add('has-live-photo');
+
+      var name = [pick.year, pick.make, pick.model].filter(Boolean).join(' ');
+      var el = document.getElementById('heroFeature');
+      if (el) {
+        document.getElementById('heroFeatureName').textContent = name;
+        document.getElementById('heroFeaturePrice').textContent = money(pick.price);
+        el.setAttribute('href', 'car?id=' + encodeURIComponent(pick.id) + '&ref=NEJ-DIRECT');
+        el.hidden = false;
+      }
+    }
+
     function loadFleet() {
       var grid = document.getElementById('fleetGrid');
       var note = document.getElementById('fleetNote');
@@ -743,6 +897,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var cars = (data && data.cars) ? data.cars : [];
+          dressHero(cars);
           if (!cars.length) {
             grid.innerHTML = '';
             if (note) { note.textContent = CMS_FLEET_EMPTY; note.style.display = ''; }
@@ -805,6 +960,13 @@
         })
         .catch(function () { /* board is a bonus — a failed fetch leaves it hidden */ });
     }
+    // Shown only when there is a number to call.
+    (function () {
+      var call = document.getElementById('heroCall');
+      var num  = document.getElementById('heroCallNum');
+      if (call && num && num.textContent.trim()) call.hidden = false;
+    })();
+
     loadBoard();
   </script>
 </body>
