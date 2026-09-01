@@ -20,8 +20,13 @@ if ($isAdminCall) {
     require_admin();
 
     if (method() === 'GET') {
+        // is_first flags a partner who has never been paid — their first payout is
+        // promised same-day on the marketing site, so surface it for triage.
         $rows = db()->query(
-            'SELECT w.*, u.name, u.email, u.role FROM withdrawals w
+            'SELECT w.*, u.name, u.email, u.role,
+                    (SELECT COUNT(*) FROM withdrawals p
+                      WHERE p.user_id = w.user_id AND p.status = "Paid") AS paid_before
+             FROM withdrawals w
              JOIN users u ON u.id = w.user_id ORDER BY w.status="Requested" DESC, w.id DESC')->fetchAll();
         json_out(['ok' => true, 'withdrawals' => array_map('shape_wd_admin', $rows)]);
     }
@@ -81,5 +86,8 @@ function shape_wd(array $r): array {
             'processed' => $r['processed_at'] ? substr((string)$r['processed_at'], 0, 10) : null];
 }
 function shape_wd_admin(array $r): array {
-    return shape_wd($r) + ['user' => ['name' => $r['name'], 'email' => $r['email'], 'role' => $r['role']]];
+    return shape_wd($r) + [
+        'user'     => ['name' => $r['name'], 'email' => $r['email'], 'role' => $r['role']],
+        'is_first' => (int)($r['paid_before'] ?? 0) === 0,
+    ];
 }

@@ -21,7 +21,7 @@ return [
     'mark'        => 'NEJ',
     'brand'       => 'nej',
     'brand_em'    => 'autos',
-    'links'       => "Fleet | #fleet\nShare & Earn | #share\nTiers | #tiers\nPortal | portal",
+    'links'       => "Fleet | #fleet\nShare & Earn | #share\nPortal | portal",
     'login_label' => 'Partner Login',
 ],
 
@@ -33,7 +33,7 @@ return [
     'lead'      => 'Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.',
     'cta_label' => 'More information',
     'cta_href'  => '#fleet',
-    'tabs'      => "Buy a car\nFinance & warranty\nBecome a partner",
+    'tabs'      => "Buy a car | #fleet\nShare & earn | #share\nBecome a partner | #apply",
 ],
 
 /* ------------------------------ booking bar ----------------------------- */
@@ -66,18 +66,31 @@ return [
     'text'        => 'Share any NEJ Autos listing to WhatsApp, Facebook or X. Every share is tracked to you — and buyers who come through your link earn you more.',
     'steps' => [
         ['ico' => '📤', 'title' => 'Share any car',
-         'text' => 'One tap sends a trackable listing to *WhatsApp, Facebook, X or Telegram*. Every share is counted to your account.'],
+         'text' => 'One tap sends a trackable listing to *WhatsApp, Facebook, X or Telegram*. Two shares count each day — share *7 days running* and that doubles to four.'],
         ['ico' => '👤', 'title' => 'A buyer taps your link',
          'text' => "They land on the car's page and enquire — automatically *credited to you* as the source of the sale."],
         ['ico' => '💸', 'title' => 'You get paid',
-         'text' => "Earn *₦800 per share* plus your full commission *+2%* if the buyer buys through your link. The month's top sharer wins *₦300,000*."],
+         'text' => "Earn *₦800 per share* plus your full tier commission if the buyer buys through your link. The month's top sharer wins *₦300,000*."],
     ],
     'chips' => [
-        ['v' => '₦800',     'k' => 'Per counted share (max 2/day)'],
+        ['v' => '₦800',     'k' => 'Per counted share · 2/day, 4/day on a streak'],
         ['v' => '₦300,000', 'k' => 'Monthly top-sharer prize'],
         ['v' => '₦100,000', 'k' => 'Per referred partner who sells'],
         ['v' => '₦250,000', 'k' => 'Bonus per EV / premium sold'],
     ],
+],
+
+/* --------------------------- top-sharer board --------------------------- */
+/* Live board on the homepage, fed by leaderboard.php?public=1. Switch it off
+   under Settings → Top-sharer bonus (leaderboard_public). */
+'board' => [
+    'kicker'      => 'Live this month',
+    'title'       => 'Top',
+    'title_em'    => 'Sharers',
+    'title_after' => '',
+    'text'        => 'Ranked by the buyers their links actually brought in. The board resets on the 1st — every partner starts level.',
+    'empty'       => 'The board is open and nobody has claimed a spot yet this month. Share one car and you are on it.',
+    'prize_note'  => 'The month\'s top sharers split the prize pool.',
 ],
 
 /* --------------------------------- tiers -------------------------------- */
@@ -86,19 +99,19 @@ return [
     'title'       => 'Partner',
     'title_em'    => 'Tiers',
     'title_after' => '',
-    'text'        => 'The more you sell each month, the higher your commission on every single car — automatically.',
+    'text'        => 'The more you sell each month, the higher your commission on every single car — automatically. Every tier also carries the ₦250,000 minimum per sale.',
     'items' => [
         ['tone' => 'bronze', 'medal' => '🥉', 'name' => 'Bronze', 'units' => '0–4 cars / month',
-         'rate' => '3%', 'lbl' => 'base commission', 'featured' => 0,
+         'rate' => '1%', 'lbl' => 'base commission', 'featured' => 0,
          'perks' => "Digital partner dashboard\nFull inventory access\nShare & earn tools"],
-        ['tone' => 'silver', 'medal' => '🥈', 'name' => 'Silver', 'units' => '5–12 cars / month',
-         'rate' => '5%', 'lbl' => 'commission', 'featured' => 0,
+        ['tone' => 'silver', 'medal' => '🥈', 'name' => 'Silver', 'units' => '5–9 cars / month',
+         'rate' => '1.4%', 'lbl' => 'commission', 'featured' => 0,
          'perks' => "Faster payouts\nMarketing support\nDedicated account manager"],
-        ['tone' => 'gold', 'medal' => '🥇', 'name' => 'Gold', 'units' => '13–25 cars / month',
-         'rate' => '6%', 'lbl' => 'commission', 'featured' => 1,
+        ['tone' => 'gold', 'medal' => '🥇', 'name' => 'Gold', 'units' => '10–14 cars / month',
+         'rate' => '1.7%', 'lbl' => 'commission', 'featured' => 1,
          'perks' => "Co-branded leads\nInventory previews\nPriority payouts"],
-        ['tone' => 'plat', 'medal' => '💎', 'name' => 'Platinum', 'units' => '26+ cars / month',
-         'rate' => '7%', 'lbl' => 'top commission', 'featured' => 0,
+        ['tone' => 'plat', 'medal' => '💎', 'name' => 'Platinum', 'units' => '15+ cars / month',
+         'rate' => '2%', 'lbl' => 'top commission', 'featured' => 0,
          'perks' => "Invitation-only inventory\nQuarterly bonuses\nIncentive trips"],
     ],
 ],
@@ -123,14 +136,15 @@ return [
 /* ------------------------------ partner CTA ----------------------------- */
 'cta' => [
     'kicker'     => 'NEJ Autos Partner Network',
-    'title'      => 'Earn up to 7% selling cars you never had to source.',
-    'text'       => 'Join the network, share inventory, and get paid on every sale — plus bonuses for top sellers, referrals, and the most-shared cars each month.',
+    'title'      => 'Earn ₦800,000 on a single ₦40M sale.',
+    'text'       => "That's your *2% top commission* on a car you never had to source — and no sale pays you less than *₦250,000*, whatever the car is worth. Your first payout clears *the same day*.",
     'btn_label'  => 'Open the Partner Portal',
     'btn_href'   => 'portal',
     'stats' => [
-        ['n' => '7%',     'l' => 'Top commission'],
-        ['n' => '5 days', 'l' => 'To payout'],
-        ['n' => '250+',   'l' => 'Partners'],
+        ['n' => '₦250,000', 'l' => 'Minimum per sale'],
+        ['n' => '2%',       'l' => 'Top commission'],
+        ['n' => 'Same day', 'l' => 'Your first payout'],
+        ['n' => '250+',     'l' => 'Partners'],
     ],
     'form_title' => 'Apply to join',
     'form_text'  => 'A partner specialist replies within 24 hours.',
@@ -142,12 +156,12 @@ return [
 'footer' => [
     'about'      => 'Certified vehicles and a partner network built for fast, reliable payouts and real growth.',
     'col1_title' => 'Explore',
-    'col1_links' => "Our fleet | #fleet\nShare & earn | #share\nPartner tiers | #tiers\nThe portal | portal",
+    'col1_links' => "Our fleet | #fleet\nShare & earn | #share\nThe portal | portal",
     'col2_title' => 'Partners',
     'col2_links' => "Partner login | portal\nApply to join | #apply\nShare & earn | portal#share",
     'col3_title' => 'Contact',
     'email'      => 'partners@nejautos.com',
-    'phone'      => '+1 (000) 000-0000',
+    'phone'      => '0802 603 8780',
     'copyright'  => 'NEJ Autos © 2026. All rights reserved.',
     'tagline'    => 'Designed for dealers, brokers & independent agents.',
 ],

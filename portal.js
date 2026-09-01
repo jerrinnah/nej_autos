@@ -197,6 +197,47 @@ async function navigate(tab) {
   }
 }
 
+/* -------------------------------------------------------------------------
+   Participation widgets — a streak meter and the first-payout perk. Both read
+   straight off me.php, so the portal always shows the same numbers the API
+   will actually enforce.
+   ------------------------------------------------------------------------- */
+
+/* Daily share allowance + how close the user is to doubling it. */
+function streakCard(me) {
+  const sh = me.shares || {};
+  const need = +sh.streakNeed || 0;
+  if (!need || (+sh.streakCap || 0) <= (+sh.baseCap || 0)) return '';   // streaks switched off
+  const streak = +sh.streak || 0;
+  const done = Math.min(streak, need);
+  const left = Math.max(0, need - streak);
+  const pips = Array.from({ length: need }, (_, i) =>
+    `<i class="${i < done ? 'on' : ''}"></i>`).join('');
+
+  return `
+    <div class="streak ${sh.boosted ? 'boosted' : ''}">
+      <div class="streak-top">
+        <span class="streak-fire">${sh.boosted ? '🔥' : streak ? '🔥' : '💤'}</span>
+        <div class="streak-txt">
+          <b>${streak === 0 ? 'Start a streak today' : `${streak}-day streak`}</b>
+          <small>${sh.boosted
+            ? `Boost active — <b>${sh.streakCap}</b> shares count today instead of ${sh.baseCap}.`
+            : left === need
+              ? `Share on ${need} days running and your daily counted shares go from ${sh.baseCap} to ${sh.streakCap}.`
+              : `${left} more day${left === 1 ? '' : 's'} running and your daily counted shares double to ${sh.streakCap}.`}</small>
+        </div>
+        <span class="streak-today">${sh.today || 0}<em>/${sh.cap} today</em></span>
+      </div>
+      <div class="streak-pips">${pips}</div>
+    </div>`;
+}
+
+/* Same-day promise, shown only while the partner has never been paid. */
+function firstPayoutNote(me) {
+  if (!me.config || !me.config.first_payout_same_day) return '';
+  return `<div class="banner green"><span>⚡</span><div><b>Your first payout clears the same day.</b> Request it before the end of the day and NEJ Autos pays it before the next one.</div></div>`;
+}
+
 /* =========================================================================
    Dashboard
    ========================================================================= */
@@ -239,6 +280,9 @@ function renderDistributorHome(me) {
       <span class="cta-txt"><b>Share a car &amp; earn</b><small>${money(perClick)} for every new person who clicks</small></span>
       <span class="cta-arrow">→</span>
     </button>
+
+    ${streakCard(me)}
+    ${firstPayoutNote(me)}
 
     <div class="steps">
       <div class="step"><span class="step-n">1</span><b>Share a link</b><small>Pick a car, tap Share, send it anywhere.</small></div>
@@ -284,14 +328,16 @@ function renderBrokerHome(me) {
     `<div class="kpi ${lock ? 'lock' : ''}" style="--glow:${glow}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="meta">${meta}</div></div>`;
 
   $('#view').innerHTML = `
-    <div class="banner amber"><span>💡</span><div>You earn <b>${me.config.broker_rate_pct}% commission</b> on every car you close. Share a car's link, and when the buyer's enquiry is marked <b>Won</b>, your commission becomes withdrawable.</div></div>
+    <div class="banner amber"><span>💡</span><div>You earn <b>${me.config.broker_rate_pct}% commission</b> on every car you close${me.config.min_commission ? `, and never less than <b>${money(me.config.min_commission)}</b> on a sale — however cheap the car` : ''}. Share a car's link, and when the buyer's enquiry is marked <b>Won</b>, your commission becomes withdrawable.</div></div>
+    ${firstPayoutNote(me)}
+    ${streakCard(me)}
     <div class="kpis">
       ${kpi('Withdrawable', money(b.withdrawable), b.withdrawable > 0 ? 'Ready to withdraw' : 'Unlocks after a sale', 'rgba(52,211,153,.2)')}
       ${kpi('Pending commission', money(b.pending), 'Clears when sale confirmed', 'rgba(245,166,35,.2)', true)}
       ${kpi('Sales won', me.salesWon, `${me.links.count} links shared`, 'rgba(96,165,250,.2)')}
       ${kpi('This week', money(me.week.amount), 'earned this week', 'rgba(245,166,35,.2)')}
       ${kpi('Total clicks', me.links.clicks.toLocaleString(), `${me.links.uniques.toLocaleString()} unique`, 'rgba(96,165,250,.2)')}
-      ${kpi('Shares', (me.shares ? me.shares.total : 0).toLocaleString(), me.shares ? `${me.shares.today}/${me.shares.cap} counted today` : 'shared', 'rgba(167,139,250,.2)')}
+      ${kpi('Shares', (me.shares ? me.shares.total : 0).toLocaleString(), me.shares ? `${me.shares.today}/${me.shares.cap} counted today${me.shares.streak ? ` · 🔥 ${me.shares.streak}-day streak` : ''}` : 'shared', 'rgba(167,139,250,.2)')}
     </div>
 
     <div class="panel">
@@ -431,6 +477,8 @@ function renderDistributorMoney(me) {
       </p>
     </div>
 
+    ${firstPayoutNote(me)}
+
     ${me.withdrawals.length ? `<div class="panel">
       <div class="panel-head"><h3>Your withdrawals</h3></div>
       <div class="panel-body"><div class="act-list">
@@ -464,6 +512,8 @@ function renderBrokerCommission(me) {
       <div class="kpi lock" style="--glow:rgba(245,166,35,.2)"><div class="lbl">Pending commission</div><div class="val">${money(b.pending)}</div><div class="meta">clears when sale confirmed</div></div>
       <div class="kpi" style="--glow:rgba(96,165,250,.2)"><div class="lbl">Reserved</div><div class="val">${money(b.reserved)}</div><div class="meta">in withdrawal requests</div></div>
     </div>
+
+    ${firstPayoutNote(me)}
 
     <div class="panel">
       <div class="panel-head"><h3>Withdraw earnings</h3><div class="spacer"></div>
@@ -646,7 +696,18 @@ async function recordShare(link, platform) {
       car_id: link.car_id,
       vehicle: `${link.make || ''} ${link.model || ''}`.trim(),
     }});
-    if (r && r.counted) toast('Share counted — reward pending until the car sells', 'ok');
+    if (!r) return;
+    if (r.counted) {
+      // Tell them where the streak stands — that is what brings them back tomorrow.
+      const left = r.cap - r.today;
+      toast(r.boosted
+        ? `Share counted 🔥 ${r.streak}-day streak · ${left} more count${left === 1 ? 's' : ''} today`
+        : r.streak > 1
+          ? `Share counted — ${r.streak} days running. Keep it up.`
+          : 'Share counted — reward pending until the car sells', 'ok');
+    } else {
+      toast(`That's all ${r.cap} counted shares for today — keep sharing, and come back tomorrow to keep your streak.`, 'ok');
+    }
   } catch (e) { /* analytics only; ignore failures */ }
 }
 

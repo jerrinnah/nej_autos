@@ -144,6 +144,28 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; min-width
 /* info banner */
 .banner { display: flex; gap: .7rem; align-items: flex-start; background: var(--blue-soft); border: 1px solid rgba(96,165,250,.28); color: #cfe0fb; padding: .9rem 1.1rem; border-radius: var(--radius-sm); font-size: .86rem; line-height: 1.5; margin-bottom: 1.4rem; }
 .banner.amber { background: var(--accent-soft); border-color: rgba(245,166,35,.3); color: #ffe0a6; }
+.banner.green { background: var(--green-soft); border-color: rgba(52,211,153,.3); color: #b6f0da; }
+
+/* sharing streak — the daily habit meter */
+.streak {
+  background: rgba(15,28,52,.62); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1rem 1.15rem; margin-bottom: 1.4rem;
+}
+.streak.boosted { border-color: rgba(245,166,35,.4); background: var(--accent-soft); }
+.streak-top { display: flex; align-items: center; gap: .8rem; }
+.streak-fire { font-size: 1.5rem; line-height: 1; }
+.streak-txt { flex: 1; min-width: 0; }
+.streak-txt b { display: block; font-size: .95rem; }
+.streak-txt small { display: block; color: var(--muted); font-size: .82rem; line-height: 1.45; margin-top: .15rem; }
+.streak-txt small b { display: inline; color: var(--accent-2); }
+.streak-today { text-align: right; font-weight: 800; font-size: 1.15rem; white-space: nowrap; }
+.streak-today em { display: block; font-style: normal; font-weight: 500; font-size: .7rem; color: var(--muted); }
+.streak-pips { display: flex; gap: .3rem; margin-top: .85rem; }
+.streak-pips i {
+  flex: 1; height: 6px; border-radius: 99px; background: var(--border-hi);
+  transition: background .2s ease;
+}
+.streak-pips i.on { background: var(--accent); }
 
 /* ---- distributor simplified home ---- */
 .hero { background: linear-gradient(135deg, rgba(245,166,35,.10), rgba(167,139,250,.09)), rgba(15,28,52,.72);

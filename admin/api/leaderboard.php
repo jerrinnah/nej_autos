@@ -9,7 +9,6 @@
    ========================================================================= */
 
 require __DIR__ . '/_bootstrap.php';
-require_admin();
 
 /* --------------------------- period handling ---------------------------- */
 $period = (string)param('period', date('Y-m'));
@@ -32,6 +31,26 @@ $minClk   = max(0, (int)setting('leaderboard_min_clicks', '1'));
 $dayCap   = (int)setting('max_click_points_per_link_day', '20');   // reuse the anti-fraud per-link/day cap
 
 $pdo = db();
+
+/* ============================ PUBLIC BOARD ==============================
+   GET leaderboard.php?public=1 — the live top-sharer board for the homepage.
+   Read-only, no session, and deliberately thin: rank, a shortened display name
+   and the click score. Never exposes payouts, referral codes or emails. */
+if (method() === 'GET' && (string)param('public', '') === '1') {
+    if ((int)setting('leaderboard_public', '1') !== 1) {
+        json_out(['ok' => true, 'enabled' => false, 'rows' => []]);
+    }
+    $top  = lb_ranking($pdo, $start, $end, $dayCap, $minClk, 10);
+    $rows = [];
+    foreach (lb_decorate($pdo, $top) as $r) {
+        $rows[] = ['rank' => $r['rank'], 'name' => lb_short_name($r['name']), 'score' => $r['score']];
+    }
+    json_out(['ok' => true, 'enabled' => true, 'period' => $period, 'label' => $label,
+              'pool' => $pool, 'winners' => $winners, 'rows' => $rows]);
+}
+
+/* Everything below this line is the admin view. */
+require_admin();
 
 /**
  * Ranking by unique clicks, with each link's daily uniques capped at $dayCap
@@ -94,6 +113,16 @@ function lb_paid(PDO $pdo, string $tag): array {
     $out = [];
     foreach ($q->fetchAll() as $r) $out[(int)$r['user_id']] = $r;
     return $out;
+}
+
+/** "Adaeze Okonkwo" → "Adaeze O." — recognisable to the partner, private enough
+    to publish on a page anyone can read. */
+function lb_short_name(string $name): string {
+    $parts = preg_split('/\s+/', trim($name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    if (!$parts) return 'Partner';
+    $first = $parts[0];
+    if (count($parts) === 1) return $first;
+    return $first . ' ' . mb_strtoupper(mb_substr(end($parts), 0, 1)) . '.';
 }
 
 /* Enrich ranking rows with the partner's public details. */

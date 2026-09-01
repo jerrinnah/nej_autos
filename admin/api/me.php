@@ -50,7 +50,18 @@ $wd = $pdo->prepare('SELECT id,amount,status,requested_at,processed_at FROM with
                      WHERE user_id=:u ORDER BY id DESC LIMIT 10');
 $wd->execute([':u' => $uid]);
 
-$rate = $user['commission_pct'] !== null ? (float)$user['commission_pct'] : (float)setting('broker_rate_pct', '12');
+$rate = $user['commission_pct'] !== null ? (float)$user['commission_pct'] : (float)setting('broker_rate_pct', '2');
+
+/* today's share allowance + streak (drives the portal's streak meter) */
+$allow = share_cap_for($uid);
+
+/* First-payout perk: nothing paid out yet → this withdrawal is same-day. */
+$firstPayout = false;
+if ((int)setting('first_payout_same_day', '1') === 1) {
+    $fp = $pdo->prepare("SELECT COUNT(*) FROM withdrawals WHERE user_id=:u AND status='Paid'");
+    $fp->execute([':u' => $uid]);
+    $firstPayout = (int)$fp->fetchColumn() === 0;
+}
 
 /* saved payout details (self-service, editable in the portal Settings tab) */
 $payout = ['bank_name' => '', 'account_number' => '', 'account_name' => '', 'has_payout' => false];
@@ -74,7 +85,8 @@ json_out(['ok' => true,
     'balance' => $bal,
     'links'   => ['count' => (int)$links['links'], 'clicks' => (int)$links['clicks'], 'uniques' => (int)$links['uniques']],
     'shares'  => ['total' => $shares['total'], 'counted' => $shares['counted'], 'today' => $shares['today'],
-                  'cap' => (int)setting('max_counted_shares_per_day', '2')],
+                  'cap' => $allow['cap'], 'baseCap' => $allow['base'], 'streakCap' => $allow['raised'],
+                  'streak' => $allow['streak'], 'streakNeed' => $allow['need'], 'boosted' => $allow['boosted']],
     'week'    => ['label' => iso_week(), 'amount' => (int)$week['amt'], 'points' => (int)$week['pts']],
     'salesWon' => $salesWon,
     'payout'  => $payout,
@@ -85,6 +97,8 @@ json_out(['ok' => true,
         'sale_bonus_ngn'   => (int)setting('distributor_sale_bonus_ngn', '25000'),
         'share_reward_ngn' => (int)setting('share_reward_ngn', '800'),
         'min_withdrawal'   => (int)setting('min_withdrawal_ngn', '10000'),
+        'min_commission'   => (int)setting('min_commission_ngn', '250000'),
+        'first_payout_same_day' => $firstPayout,
     ],
     'ledger'  => array_map(function ($r) {
         return ['type' => $r['type'], 'points' => (int)$r['points'], 'amount' => (int)$r['amount'],

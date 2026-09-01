@@ -3,56 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0b3d38" />
+  <meta name="theme-color" content="#ececed" />
   <title>NEJ Autos — Premium cars &amp; the partner network that sells them</title>
   <meta name="description" content="NEJ Autos: certified, inspected vehicles and a partner network that earns real commissions for selling and sharing them." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="icon.svg" />
 </head>
-<body>
+<body id="top">
 
-  <!-- ============================= HERO ============================= -->
-  <header class="hero">
-    <div class="hero-scene" aria-hidden="true">
-      <svg viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#0c4a43"/><stop offset="1" stop-color="#0a352f"/>
-          </linearGradient>
-          <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#415f38"/><stop offset="1" stop-color="#2b4526"/>
-          </linearGradient>
-        </defs>
-        <rect width="1440" height="720" fill="url(#ocean)"/>
-        <!-- waves -->
-        <g stroke="#ffffff" stroke-opacity="0.05" fill="none" stroke-width="2">
-          <path d="M-20 120 C 180 90, 320 150, 520 120"/>
-          <path d="M-20 220 C 200 190, 340 250, 560 210"/>
-          <path d="M-20 330 C 180 300, 300 360, 520 330"/>
-          <path d="M-20 450 C 160 420, 300 480, 500 450"/>
-          <path d="M-20 560 C 180 530, 320 590, 520 560"/>
-        </g>
-        <!-- coastline / land on the right -->
-        <path d="M1440 0 L1440 720 L640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0 Z" fill="url(#land)"/>
-        <!-- sandy shore edge -->
-        <path d="M640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0"
-              fill="none" stroke="#cbb487" stroke-opacity="0.5" stroke-width="10"/>
-        <!-- road ribbon -->
-        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
-              fill="none" stroke="#3c3c3f" stroke-width="46" stroke-linecap="round"/>
-        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
-              fill="none" stroke="#e9e2cf" stroke-opacity="0.65" stroke-width="3" stroke-dasharray="14 18"/>
-        <!-- car -->
-        <g transform="translate(999 322) rotate(38)">
-          <rect x="-11" y="-20" width="22" height="40" rx="6" fill="#d8452a"/>
-          <rect x="-8" y="-12" width="16" height="12" rx="3" fill="#f4b8a8" fill-opacity="0.8"/>
-        </g>
-      </svg>
-    </div>
-    <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
-
+  <!-- ============================ TOP BAR =========================== -->
+  <div class="topbar">
     <div class="container">
-      <div class="site-header">
+      <div class="site-header" id="siteHeader">
         <a class="brand" href="#top" id="brandLink">
           <span class="mark">NEJ</span> <span>nej<em>autos</em></span>
         </a>
@@ -60,32 +25,86 @@
           <div class="links" id="navLinks">
             <a href="#fleet">Fleet</a>
             <a href="#share">Share &amp; Earn</a>
-            <a href="#tiers">Tiers</a>
             <a href="portal">Portal</a>
           </div>
           <div class="icons">
             <a href="#fleet" aria-label="Search">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             </a>
             <a href="portal" aria-label="Account">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
             </a>
             <a class="login-pill" id="loginPill" href="portal">Partner Login</a>
+            <button class="nav-toggle" id="navToggle" type="button"
+                    aria-label="Menu" aria-expanded="false" aria-controls="navLinks">
+              <span></span><span></span><span></span>
+            </button>
           </div>
         </nav>
       </div>
+    </div>
+  </div>
 
+  <!-- ============================= HERO =============================
+       Copy sits above a capsule stage. The stage holds the fallback
+       scene below, and the CMS slider paints over it when slides exist. -->
+  <header class="hero">
+    <div class="container">
       <div class="hero-inner" id="heroInner">
         <div class="hero-copy" id="heroCopy">
-          <h1 id="heroH1">The car is<br>waiting for you</h1>
+          <h1 id="heroH1">Your next car</h1>
           <p class="lead" id="heroLead">Certified, inspected vehicles — sourced, reconditioned and sold through the NEJ Autos partner network.</p>
           <a class="more" id="heroMore" href="#fleet">More information <span class="arrow">→</span></a>
         </div>
 
+        <div class="hero-stage">
+          <!-- Static hero photo. Drop a file at assets/hero.jpg to use it; if it
+               isn't there the image removes itself and the scene below shows. -->
+          <img class="hero-photo" src="assets/hero.jpg" alt="" aria-hidden="true"
+               onerror="this.remove()" />
+          <div class="hero-scene" aria-hidden="true">
+        <svg viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+        <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#2b2d33"/><stop offset="1" stop-color="#141519"/>
+        </linearGradient>
+        <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3b3e45"/><stop offset="1" stop-color="#212328"/>
+        </linearGradient>
+        </defs>
+        <rect width="1440" height="720" fill="url(#ocean)"/>
+        <!-- waves -->
+        <g stroke="#ffffff" stroke-opacity="0.05" fill="none" stroke-width="2">
+        <path d="M-20 120 C 180 90, 320 150, 520 120"/>
+        <path d="M-20 220 C 200 190, 340 250, 560 210"/>
+        <path d="M-20 330 C 180 300, 300 360, 520 330"/>
+        <path d="M-20 450 C 160 420, 300 480, 500 450"/>
+        <path d="M-20 560 C 180 530, 320 590, 520 560"/>
+        </g>
+        <!-- coastline / land on the right -->
+        <path d="M1440 0 L1440 720 L640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0 Z" fill="url(#land)"/>
+        <!-- sandy shore edge -->
+        <path d="M640 720 C 720 600 650 520 780 470 C 900 424 830 300 910 236 C 984 176 946 74 1052 0"
+        fill="none" stroke="#e0592b" stroke-opacity="0.35" stroke-width="10"/>
+        <!-- road ribbon -->
+        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
+        fill="none" stroke="#3c3c3f" stroke-width="46" stroke-linecap="round"/>
+        <path d="M1080 -20 C 1010 130 1090 220 1000 320 C 916 414 1000 520 916 620 C 878 668 862 700 846 740"
+        fill="none" stroke="#e9e2cf" stroke-opacity="0.65" stroke-width="3" stroke-dasharray="14 18"/>
+        <!-- car -->
+        <g transform="translate(999 322) rotate(38)">
+        <rect x="-11" y="-20" width="22" height="40" rx="6" fill="#e0592b"/>
+        <rect x="-8" y="-12" width="16" height="12" rx="3" fill="#ffd9cb" fill-opacity="0.8"/>
+        </g>
+        </svg>
+          </div>
+          <div class="hero-slides" id="heroSlides" aria-hidden="true"></div>
+        </div>
+
         <div class="hero-tabs" id="heroTabs">
-          <button class="hero-tab active" data-tab>Buy a car</button>
-          <button class="hero-tab" data-tab>Finance &amp; warranty</button>
-          <button class="hero-tab" data-tab>Become a partner</button>
+          <a class="hero-tab active" data-tab href="#fleet">Buy a car</a>
+          <a class="hero-tab" data-tab href="#share">Share &amp; earn</a>
+          <a class="hero-tab" data-tab href="#apply">Become a partner</a>
         </div>
       </div>
     </div>
@@ -125,7 +144,7 @@
       <div class="fleet-grid" id="fleetGrid">
         <!-- Cars are loaded live from the admin database (cars.php?public=1). -->
       </div>
-      <p class="fleet-note" id="fleetNote" style="text-align:center;color:var(--muted);margin-top:1.6rem;">Loading available cars…</p>
+      <p class="fleet-note" id="fleetNote">Loading available cars…</p>
     </div>
   </section>
 
@@ -142,7 +161,7 @@
           <div class="num">1</div>
           <div class="step-ico">📤</div>
           <h3>Share any car</h3>
-          <p>One tap sends a trackable listing to <b>WhatsApp, Facebook, X or Telegram</b>. Every share is counted to your account.</p>
+          <p>One tap sends a trackable listing to <b>WhatsApp, Facebook, X or Telegram</b>. Two shares count each day — share <b>7 days running</b> and that doubles to four.</p>
         </div>
         <div class="step">
           <div class="num">2</div>
@@ -154,11 +173,11 @@
           <div class="num">3</div>
           <div class="step-ico">💸</div>
           <h3>You get paid</h3>
-          <p>Earn <b>₦800 per share</b> plus your full commission <b>+2%</b> if the buyer buys through your link. The month's top sharer wins <b>₦300,000</b>.</p>
+          <p>Earn <b>₦800 per share</b> plus your full tier commission if the buyer buys through your link. The month's top sharer wins <b>₦300,000</b>.</p>
         </div>
       </div>
       <div class="earn-band" id="earnBand">
-        <div class="earn-chip"><div class="v">₦800</div><div class="k">Per counted share (max 2/day)</div></div>
+        <div class="earn-chip"><div class="v">₦800</div><div class="k">Per counted share · 2/day, 4/day on a streak</div></div>
         <div class="earn-chip"><div class="v">₦300,000</div><div class="k">Monthly top-sharer prize</div></div>
         <div class="earn-chip"><div class="v">₦100,000</div><div class="k">Per referred partner who sells</div></div>
         <div class="earn-chip"><div class="v">₦250,000</div><div class="k">Bonus per EV / premium sold</div></div>
@@ -166,77 +185,34 @@
     </div>
   </section>
 
-  <!-- ============================= TIERS ============================ -->
-  <section class="section" id="tiers">
+  <!-- ======================= TOP-SHARER BOARD ======================= -->
+  <!-- Hidden until the live board answers with at least one ranked partner
+       (leaderboard.php?public=1). An empty or disabled board shows nothing. -->
+  <section class="section" id="board" hidden>
     <div class="container">
-      <div class="section-head" id="tiersHead">
-        <h2>Partner <b>Tiers</b></h2>
-        <p>The more you sell each month, the higher your commission on every single car — automatically.</p>
+      <div class="section-head" id="boardHead">
+        <span class="kicker">Live this month</span>
+        <h2>Top <b>Sharers</b></h2>
+        <p>Ranked by the buyers their links actually brought in. The board resets on the 1st — every partner starts level.</p>
       </div>
-      <div class="tiers-grid" id="tiersGrid">
-        <div class="tier2">
-          <div class="tier-top t-bronze"><div class="tier-medal">🥉</div><div class="tier-name">Bronze</div><div class="tier-units">0–4 cars / month</div></div>
-          <div class="tier-rate"><span class="big">3%</span> <span class="lbl">base commission</span></div>
-          <ul><li>Digital partner dashboard</li><li>Full inventory access</li><li>Share &amp; earn tools</li></ul>
-        </div>
-        <div class="tier2">
-          <div class="tier-top t-silver"><div class="tier-medal">🥈</div><div class="tier-name">Silver</div><div class="tier-units">5–12 cars / month</div></div>
-          <div class="tier-rate"><span class="big">5%</span> <span class="lbl">commission</span></div>
-          <ul><li>Faster payouts</li><li>Marketing support</li><li>Dedicated account manager</li></ul>
-        </div>
-        <div class="tier2 featured">
-          <div class="tier-top t-gold"><div class="tier-medal">🥇</div><div class="tier-name">Gold</div><div class="tier-units">13–25 cars / month</div></div>
-          <div class="tier-rate"><span class="big">6%</span> <span class="lbl">commission</span></div>
-          <ul><li>Co-branded leads</li><li>Inventory previews</li><li>Priority payouts</li></ul>
-        </div>
-        <div class="tier2">
-          <div class="tier-top t-plat"><div class="tier-medal">💎</div><div class="tier-name">Platinum</div><div class="tier-units">26+ cars / month</div></div>
-          <div class="tier-rate"><span class="big">7%</span> <span class="lbl">top commission</span></div>
-          <ul><li>Invitation-only inventory</li><li>Quarterly bonuses</li><li>Incentive trips</li></ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================= TESTIMONIALS ========================= -->
-  <section class="section">
-    <div class="container">
-      <div class="section-head" id="quotesHead">
-        <span class="kicker">Trusted by partners</span>
-        <h2>What <b>They Say</b> About Us</h2>
-      </div>
-      <div class="quote-grid" id="quoteGrid">
-        <div class="quote-card">
-          <div class="stars">★★★★★</div>
-          <p>“I share NEJ listings to my WhatsApp groups and get paid when they sell. Fastest payouts I've had from any wholesaler.”</p>
-          <div class="quote-person"><span class="quote-avatar">AT</span><div><strong>Ava Thompson</strong><span>Summit Auto Group</span></div></div>
-        </div>
-        <div class="quote-card">
-          <div class="stars">★★★★★</div>
-          <p>“No sourcing, no reconditioning headaches. I just pick quality cars, close the deal, and NEJ handles the rest.”</p>
-          <div class="quote-person"><span class="quote-avatar">MR</span><div><strong>Marcus Reid</strong><span>Reid Motors</span></div></div>
-        </div>
-        <div class="quote-card">
-          <div class="stars">★★★★<span class="off">★</span></div>
-          <p>“The tier system is real money. I hit Gold in two months and my commission on every car went up.”</p>
-          <div class="quote-person"><span class="quote-avatar">LO</span><div><strong>Lena Ortiz</strong><span>Coastline Cars</span></div></div>
-        </div>
-      </div>
+      <ol class="board-list" id="boardList"></ol>
+      <p class="board-note" id="boardNote"></p>
     </div>
   </section>
 
   <!-- ========================= PARTNER CTA ========================== -->
-  <section class="section tint" id="partners">
+  <section class="section" id="partners">
     <div class="container">
       <div class="cta-band">
         <div id="ctaMain">
           <span class="kicker">NEJ Autos Partner Network</span>
-          <h2>Earn up to 7% selling cars you never had to source.</h2>
-          <p>Join the network, share inventory, and get paid on every sale — plus bonuses for top sellers, referrals, and the most-shared cars each month.</p>
+          <h2>Earn ₦800,000 on a single ₦40M sale.</h2>
+          <p>That's your <b>2% top commission</b> on a car you never had to source — and no sale pays you less than <b>₦250,000</b>, whatever the car is worth. Your first payout clears <b>the same day</b>.</p>
           <a class="btn btn-primary" href="portal">Open the Partner Portal <span class="arrow">→</span></a>
           <div class="cta-stats">
-            <div><div class="n">7%</div><div class="l">Top commission</div></div>
-            <div><div class="n">5 days</div><div class="l">To payout</div></div>
+            <div><div class="n">₦250,000</div><div class="l">Minimum per sale</div></div>
+            <div><div class="n">2%</div><div class="l">Top commission</div></div>
+            <div><div class="n">Same day</div><div class="l">Your first payout</div></div>
             <div><div class="n">250+</div><div class="l">Partners</div></div>
           </div>
         </div>
@@ -265,7 +241,7 @@
         </div>
         <div class="footer-col" id="footerCol1">
           <h4>Explore</h4>
-          <a href="#fleet">Our fleet</a><a href="#share">Share &amp; earn</a><a href="#tiers">Partner tiers</a><a href="portal">The portal</a>
+          <a href="#fleet">Our fleet</a><a href="#share">Share &amp; earn</a><a href="portal">The portal</a>
         </div>
         <div class="footer-col" id="footerCol2">
           <h4>Partners</h4>
@@ -273,7 +249,7 @@
         </div>
         <div class="footer-col" id="footerCol3">
           <h4>Contact</h4>
-          <a href="mailto:partners@nejautos.com">partners@nejautos.com</a><a href="tel:+10000000000">+1 (000) 000-0000</a>
+          <a href="mailto:partners@nejautos.com">partners@nejautos.com</a><a href="tel:08026038780">0802 603 8780</a>
         </div>
       </div>
       <div class="footer-bottom">
@@ -284,7 +260,9 @@
   </footer>
 
   <script>
-    // Hero tab toggle (visual). Re-run whenever the CMS rebuilds the tabs.
+    // Hero tabs. Each one marks itself active and — when the CMS gave it a
+    // target — scrolls to that section, so the hero is a way in rather than
+    // decoration. Re-run whenever the CMS rebuilds the tabs.
     function bindTabs() {
       document.querySelectorAll('[data-tab]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -294,6 +272,22 @@
       });
     }
     bindTabs();
+
+    // Mobile menu. The CMS only rewrites #navLinks' contents, so the button
+    // and this handler survive a content refresh.
+    (function () {
+      var head = document.getElementById('siteHeader');
+      var btn  = document.getElementById('navToggle');
+      if (!head || !btn) return;
+      function setOpen(on) {
+        head.classList.toggle('nav-open', on);
+        btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      }
+      btn.addEventListener('click', function () { setOpen(!head.classList.contains('nav-open')); });
+      head.addEventListener('click', function (e) { if (e.target.closest('#navLinks a')) setOpen(false); });
+      document.addEventListener('click', function (e) { if (!head.contains(e.target)) setOpen(false); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+    })();
 
     // Booking search -> scroll to fleet
     function findCar(e) {
@@ -409,6 +403,12 @@
        Everything here degrades to the markup already in this file, so an
        unreachable API or an un-migrated database leaves the page as it is. */
     var CMS_FLEET_EMPTY = 'New inventory is on its way — check back soon.';
+    // Board copy, overwritten by the CMS when content.php lands. loadBoard()
+    // reads whatever is here at the moment its own fetch resolves.
+    var BOARD_COPY = {
+      empty: 'The board is open and nobody has claimed a spot yet this month. Share one car and you are on it.',
+      prize_note: "The month's top sharers split the prize pool.",
+    };
 
     function cmsLines(s) {
       return String(s == null ? '' : s).split('\n')
@@ -439,16 +439,6 @@
       if (el && list.length) {
         el.innerHTML = list.map(function (o) { return '<option>' + escapeHtml(o) + '</option>'; }).join('');
       }
-    }
-    function cmsStars(n) {
-      n = Math.max(0, Math.min(5, parseInt(n, 10) || 0));
-      var out = '';
-      for (var i = 0; i < 5; i++) out += (i < n) ? '★' : '<span class="off">★</span>';
-      return out;
-    }
-    function cmsInitials(name) {
-      return String(name || '?').split(/\s+/).slice(0, 2)
-        .map(function (w) { return w[0] || ''; }).join('').toUpperCase() || '?';
     }
     function cmsBrand(b) {
       return '<span class="mark">' + escapeHtml(b.mark) + '</span> <span>' +
@@ -482,10 +472,14 @@
           more.innerHTML = escapeHtml(b.cta_label) + ' <span class="arrow">→</span>';
           if (b.cta_href) more.setAttribute('href', b.cta_href);
         }
-        var tabs = cmsLines(b.tabs);
+        // Tabs accept "Label | #target"; a bare label still renders (inert).
+        var tabs = cmsLinks(b.tabs);
         if (tabs.length) {
           cmsFill('heroTabs', tabs.map(function (t, i) {
-            return '<button class="hero-tab' + (i ? '' : ' active') + '" data-tab>' + escapeHtml(t) + '</button>';
+            var cls = 'hero-tab' + (i ? '' : ' active');
+            return t.href && t.href !== '#'
+              ? '<a class="' + cls + '" data-tab href="' + escAttr(t.href) + '">' + escapeHtml(t.label) + '</a>'
+              : '<button class="' + cls + '" data-tab>' + escapeHtml(t.label) + '</button>';
           }).join(''));
           bindTabs();
         }
@@ -535,37 +529,10 @@
         }
       }
 
-      /* ---- partner tiers ---- */
-      if ((b = c.tiers)) {
-        cmsFill('tiersHead', cmsHead(b));
-        var tones = { bronze: 't-bronze', silver: 't-silver', gold: 't-gold', plat: 't-plat' };
-        if (b.items && b.items.length) {
-          cmsFill('tiersGrid', b.items.map(function (t) {
-            return '<div class="tier2' + (+t.featured ? ' featured' : '') + '">' +
-              '<div class="tier-top ' + (tones[t.tone] || 't-bronze') + '">' +
-                '<div class="tier-medal">' + escapeHtml(t.medal) + '</div>' +
-                '<div class="tier-name">' + escapeHtml(t.name) + '</div>' +
-                '<div class="tier-units">' + escapeHtml(t.units) + '</div></div>' +
-              '<div class="tier-rate"><span class="big">' + escapeHtml(t.rate) + '</span> ' +
-                '<span class="lbl">' + escapeHtml(t.lbl) + '</span></div>' +
-              '<ul>' + cmsLines(t.perks).map(function (pk) {
-                return '<li>' + escapeHtml(pk) + '</li>'; }).join('') + '</ul></div>';
-          }).join(''));
-        }
-      }
-
-      /* ---- testimonials ---- */
-      if ((b = c.quotes)) {
-        cmsFill('quotesHead', cmsHead(b));
-        if (b.items && b.items.length) {
-          cmsFill('quoteGrid', b.items.map(function (q) {
-            return '<div class="quote-card"><div class="stars">' + cmsStars(q.stars) + '</div>' +
-              '<p>“' + escapeHtml(q.text) + '”</p><div class="quote-person">' +
-              '<span class="quote-avatar">' + escapeHtml(cmsInitials(q.name)) + '</span>' +
-              '<div><strong>' + escapeHtml(q.name) + '</strong>' +
-              '<span>' + escapeHtml(q.role) + '</span></div></div></div>';
-          }).join(''));
-        }
+      /* ---- top-sharer board (copy only; rows arrive from the live board) ---- */
+      if ((b = c.board)) {
+        cmsFill('boardHead', cmsHead(b));
+        BOARD_COPY = b;
       }
 
       /* ---- partner call-to-action ---- */
@@ -618,6 +585,8 @@
 
       var scene = document.querySelector('.hero-scene');
       if (scene) scene.style.display = 'none';
+      var photo = document.querySelector('.hero-photo');
+      if (photo) photo.style.display = 'none';
       hero.classList.add('has-slider');
 
       host.innerHTML = slides.map(function (s, i) {
@@ -732,9 +701,18 @@
       // Short, shareable link — the car page loads the rest by id from the DB.
       var href = 'car?id=' + encodeURIComponent(c.id) + '&ref=NEJ-DIRECT';
 
+      var chip = tag ? '<span class="tag">' + escapeHtml(tag) + '</span>' : '';
+      // Round share button floating on the photo, the way the card art calls for.
+      var shareBtn =
+        '<button type="button" class="share-ico share-float" title="Share &amp; earn"' +
+        ' aria-label="Share ' + escAttr(title) + ' and earn"' +
+        ' data-share-title="' + escAttr(title) + '" data-share-href="' + escAttr(href) + '">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg>' +
+        '</button>';
+
       var media = (c.photos && c.photos.length)
-        ? '<div class="car-media" style="background-image:url(&quot;' + escAttr(c.photos[0]) + '&quot;);background-size:cover;background-position:center;font-size:0;">' + (tag ? '<span class="tag">' + escapeHtml(tag) + '</span>' : '') + '</div>'
-        : '<div class="car-media">' + (tag ? '<span class="tag">' + escapeHtml(tag) + '</span>' : '') + escapeHtml(c.emoji || '🚗') + '</div>';
+        ? '<div class="car-media" style="background-image:url(&quot;' + escAttr(c.photos[0]) + '&quot;);background-size:cover;background-position:center;font-size:0;">' + chip + shareBtn + '</div>'
+        : '<div class="car-media">' + chip + escapeHtml(c.emoji || '🚗') + shareBtn + '</div>';
 
       return '<article class="car-card' + featured + '">' +
         media +
@@ -751,10 +729,7 @@
             '<span class="price">' + money(c.price) + '</span>' +
           '</div>' +
           '<div class="car-actions">' +
-            '<a class="btn ' + (featured ? 'btn-primary' : 'btn-outline') + '" href="' + escAttr(href) + '">View details <span class="arrow">→</span></a>' +
-            '<button type="button" class="share-ico" aria-label="Share" data-share-title="' + escAttr(title) + '" data-share-href="' + escAttr(href) + '">' +
-              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg> Share &amp; earn' +
-            '</button>' +
+            '<a class="btn ' + (featured ? 'btn-primary' : 'btn-dark') + '" href="' + escAttr(href) + '">View details <span class="arrow">→</span></a>' +
           '</div>' +
         '</div>' +
       '</article>';
@@ -787,6 +762,50 @@
         });
     }
     loadFleet();
+
+    /* ======================= TOP-SHARER BOARD =======================
+       Proof that partners are ranking — and getting paid — right now.
+       Public, read-only and deliberately thin (rank, short name, clicks).
+       The section stays hidden unless the board is on and somebody ranks. */
+    function loadBoard() {
+      var sec = document.getElementById('board');
+      if (!sec) return;
+      fetch('/admin/api/leaderboard.php?public=1', { headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.ok || !d.enabled) return;             // switched off in Settings
+          var rows = d.rows || [];
+          var list = document.getElementById('boardList');
+          var note = document.getElementById('boardNote');
+          if (!list) return;
+
+          if (!rows.length) {
+            list.innerHTML = '<li class="board-empty">' + escapeHtml(BOARD_COPY.empty || '') + '</li>';
+          } else {
+            var top = rows[0].score || 1;
+            list.innerHTML = rows.map(function (r) {
+              var medal = r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank;
+              var pct = Math.max(6, Math.round((r.score / top) * 100));
+              return '<li class="board-row' + (r.rank <= 3 ? ' top' : '') + '">' +
+                '<span class="board-rank">' + escapeHtml(String(medal)) + '</span>' +
+                '<span class="board-name">' + escapeHtml(r.name) + '</span>' +
+                '<span class="board-bar"><i style="width:' + pct + '%"></i></span>' +
+                '<span class="board-score">' + Number(r.score).toLocaleString() +
+                  '<em>' + (r.score === 1 ? 'buyer' : 'buyers') + '</em></span>' +
+              '</li>';
+            }).join('');
+          }
+
+          if (note) {
+            note.textContent = d.pool > 0
+              ? money(d.pool) + ' shared between the top ' + d.winners + ' at the end of ' + d.label + '.'
+              : (BOARD_COPY.prize_note || '');
+          }
+          sec.hidden = false;
+        })
+        .catch(function () { /* board is a bonus — a failed fetch leaves it hidden */ });
+    }
+    loadBoard();
   </script>
 </body>
 </html>
