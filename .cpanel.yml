@@ -14,3 +14,12 @@ deployment:
     - /bin/tar -cf - --exclude='.git*' --exclude='.github' --exclude='.vercel' --exclude='.cpanel.yml' --exclude='.DS_Store' --exclude='admin/config.php' --exclude='admin/uploads/cars' --exclude='admin/uploads/site' . | /bin/tar -xf - -C $DEPLOYPATH
     - /bin/mkdir -p $DEPLOYPATH/admin/uploads/cars $DEPLOYPATH/admin/uploads/site
     - /bin/chmod -R 755 $DEPLOYPATH/admin/uploads
+    # Cache busting. Cloudflare holds CSS/JS for hours, so a deploy would ship
+    # new HTML against a stale stylesheet — the page then renders with markup
+    # and rules from different versions, which looks like a broken layout
+    # rather than a caching problem. Restamping ?v= changes the URL, so edges
+    # and browsers fetch the new file without anyone purging anything.
+    - export STAMP=$(/bin/date +%s)
+    - /bin/sed -i "s/?v=[A-Za-z0-9]*/?v=$STAMP/g" $DEPLOYPATH/index.html $DEPLOYPATH/portal.html $DEPLOYPATH/car.html || true
+    # public_html must stay traversable by the web server (0755, never 0700).
+    - /bin/chmod 755 $DEPLOYPATH
