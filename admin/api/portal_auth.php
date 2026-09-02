@@ -52,8 +52,14 @@ if (method() === 'POST' && (string)param('signup', '') === '1') {
         json_err('Could not create the account.', 500);
     }
 
-    json_out(['ok' => true, 'registered' => true,
-        'message' => 'Account created. An admin will review and activate it shortly.'], 201);
+    // Sign the new partner straight in — the moment after signup is when they
+    // are most likely to share their first car, and waiting on a human loses it.
+    $uid = (int)db()->lastInsertId();
+    session_regenerate_id(true);
+    $_SESSION['uid'] = $uid;
+
+    json_out(['ok' => true, 'registered' => true, 'signedIn' => true, 'pending' => true,
+        'message' => 'You\'re in — start sharing now. Withdrawals open once NEJ Autos approves your account.'], 201);
 }
 
 /* -------------------------------- login --------------------------------- */
@@ -68,8 +74,10 @@ if (method() === 'POST') {
     $u = $st->fetch();
     if (!$u || !password_verify($pass, $u['password_hash'])) json_err('Invalid email or password.', 401);
 
-    if ($u['status'] === 'Pending')   json_err('Your account is awaiting admin approval.', 403, ['pending' => true]);
+    // Pending accounts sign in and start sharing straight away; what waits on
+    // approval is the ability to withdraw (see require_active_user).
     if ($u['status'] === 'Suspended') json_err('Your account has been suspended. Contact NEJ Autos.', 403);
+    if (!in_array($u['status'], ['Active', 'Pending'], true)) json_err('This account cannot sign in.', 403);
 
     if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
         db()->prepare('UPDATE users SET password_hash=:h WHERE id=:id')

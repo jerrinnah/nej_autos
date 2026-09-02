@@ -125,7 +125,15 @@ function wireSignup() {
       const r = await api('portal_auth.php?signup=1', { method: 'POST', body: {
         name: $('#s_name').value, email: $('#s_email').value, phone: $('#s_phone').value,
         company: $('#s_company').value, role: signupRole, password: $('#s_pass').value } });
-      showAuth('login', '', r.message || 'Account created — awaiting admin approval.');
+      // Signup signs them straight in. The whole point of admitting Pending
+      // accounts is that the first share happens while the intent is still hot.
+      if (r.signedIn) {
+        const sess = await api('portal_auth.php');
+        store.user = sess.user;
+        showApp();
+      } else {
+        showAuth('login', '', r.message || 'Account created — awaiting admin approval.');
+      }
     } catch (err) { showAuth('signup', err.message); }
   });
 }
@@ -232,6 +240,18 @@ function streakCard(me) {
     </div>`;
 }
 
+/* Awaiting approval. Says what they CAN do first — the point of letting them in
+   early is that they share now — then what waits on us. */
+function pendingNote(me) {
+  if (!me.user || me.user.approved !== false) return '';
+  return `<div class="banner amber"><span>⏳</span><div><b>You're in — start sharing now.</b>
+    Grab a car's link and every share, click and sale is already being tracked to you.
+    NEJ Autos is reviewing your account; <b>withdrawals open once that's done</b>, usually within a day.</div></div>`;
+}
+
+/* Approval gates cashing out, nothing else. */
+function canCashOut(me) { return !me.user || me.user.approved !== false; }
+
 /* Same-day promise, shown only while the partner has never been paid. */
 function firstPayoutNote(me) {
   if (!me.config || !me.config.first_payout_same_day) return '';
@@ -253,7 +273,7 @@ function renderDistributorHome(me) {
   const first = (me.user.name || '').split(' ')[0] || 'there';
   const ready = b.withdrawable;
   const waiting = b.pending;
-  const canWithdraw = ready >= me.config.min_withdrawal;
+  const canWithdraw = ready >= me.config.min_withdrawal && canCashOut(me);
   const perClick = me.config.click_points * me.config.point_value_ngn;
 
   $('#view').innerHTML = `
@@ -271,7 +291,9 @@ function renderDistributorHome(me) {
         <div class="fig wait"><span class="fig-lbl">Waiting on a sale</span><span class="fig-val">${money(waiting)}</span></div>
       </div>
       <button class="btn btn-primary" id="wdHero" ${canWithdraw ? '' : 'disabled'} style="width:100%;margin-top:1rem">
-        ${canWithdraw ? 'Withdraw ' + money(ready) + ' →' : '🔒 Unlocks when a car you shared is sold'}
+        ${canWithdraw ? 'Withdraw ' + money(ready) + ' →'
+          : !canCashOut(me) ? '⏳ Withdrawals open once you\'re approved'
+          : '🔒 Unlocks when a car you shared is sold'}
       </button>
     </div>
 
@@ -281,6 +303,7 @@ function renderDistributorHome(me) {
       <span class="cta-arrow">→</span>
     </button>
 
+    ${pendingNote(me)}
     ${streakCard(me)}
     ${firstPayoutNote(me)}
 
@@ -328,6 +351,7 @@ function renderBrokerHome(me) {
     `<div class="kpi ${lock ? 'lock' : ''}" style="--glow:${glow}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="meta">${meta}</div></div>`;
 
   $('#view').innerHTML = `
+    ${pendingNote(me)}
     <div class="banner amber"><span>💡</span><div>You earn <b>${me.config.broker_rate_pct}% commission</b> on every car you close${me.config.min_commission ? `, and never less than <b>${money(me.config.min_commission)}</b> on a sale — however cheap the car` : ''}. Share a car's link, and when the buyer's enquiry is marked <b>Won</b>, your commission becomes withdrawable.</div></div>
     ${firstPayoutNote(me)}
     ${streakCard(me)}
@@ -459,7 +483,7 @@ async function viewEarnings() {
 /* ---- Distributor: simple "My Money" ------------------------------------ */
 function renderDistributorMoney(me) {
   const b = me.balance;
-  const canWithdraw = b.withdrawable >= me.config.min_withdrawal;
+  const canWithdraw = b.withdrawable >= me.config.min_withdrawal && canCashOut(me);
 
   $('#view').innerHTML = `
     <div class="hero">
@@ -468,11 +492,13 @@ function renderDistributorMoney(me) {
         <div class="fig wait"><span class="fig-lbl">Waiting on a sale</span><span class="fig-val">${money(b.pending)}</span></div>
       </div>
       <button class="btn btn-primary" id="wdBtn" ${canWithdraw ? '' : 'disabled'} style="width:100%;margin-top:1rem">
-        ${canWithdraw ? 'Withdraw ' + money(b.withdrawable) + ' →' : '🔒 Unlocks when a car you shared is sold'}
+        ${canWithdraw ? 'Withdraw ' + money(b.withdrawable) + ' →'
+          : !canCashOut(me) ? '⏳ Withdrawals open once you\'re approved'
+          : '🔒 Unlocks when a car you shared is sold'}
       </button>
       <p class="hero-sub" style="margin-top:.8rem;text-align:center">
-        ${canWithdraw
-          ? 'NEJ Autos reviews and pays your withdrawal.'
+        ${canWithdraw ? 'NEJ Autos reviews and pays your withdrawal.'
+          : !canCashOut(me) ? 'Keep sharing — everything you earn is waiting for you here.'
           : `You need ${money(me.config.min_withdrawal)} unlocked. Earnings unlock the moment a car you shared sells.`}
       </p>
     </div>
@@ -504,7 +530,7 @@ function renderDistributorMoney(me) {
 /* ---- Broker: full commission view -------------------------------------- */
 function renderBrokerCommission(me) {
   const b = me.balance;
-  const canWithdraw = b.withdrawable >= me.config.min_withdrawal;
+  const canWithdraw = b.withdrawable >= me.config.min_withdrawal && canCashOut(me);
 
   $('#view').innerHTML = `
     <div class="kpis">
@@ -521,6 +547,8 @@ function renderBrokerCommission(me) {
       <div class="panel-body">
         ${canWithdraw
           ? `<p class="cell-sub" style="margin:0">You have ${money(b.withdrawable)} ready. Withdrawals are reviewed and paid by NEJ Autos.</p>`
+          : !canCashOut(me)
+          ? `<p class="cell-sub" style="margin:0">Your account is still being reviewed, so withdrawals are closed for now. Everything you earn in the meantime is kept and waiting.</p>`
           : `<p class="cell-sub" style="margin:0">Nothing withdrawable yet. Commission unlocks when a sale you brokered is confirmed. Minimum withdrawal is ${money(me.config.min_withdrawal)}.</p>`}
       </div>
     </div>

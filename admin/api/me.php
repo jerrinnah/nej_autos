@@ -81,6 +81,8 @@ json_out(['ok' => true,
     'user' => [
         'id' => $uid, 'name' => $user['name'], 'email' => $user['email'],
         'role' => $user['role'], 'referral_code' => $user['referral_code'],
+        // Pending accounts share and earn; only withdrawing waits on approval.
+        'status' => $user['status'], 'approved' => $user['status'] === 'Active',
     ],
     'balance' => $bal,
     'links'   => ['count' => (int)$links['links'], 'clicks' => (int)$links['clicks'], 'uniques' => (int)$links['uniques']],

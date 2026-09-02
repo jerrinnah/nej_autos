@@ -139,6 +139,11 @@ function start_user_session(): void {
     session_start();
 }
 
+/* A signed-in user is Active OR Pending. Pending accounts can do everything
+   that does not move money — browse stock, take tracked links, share, and watch
+   earnings accrue — because every one of those earnings is written as 'pending'
+   and only unlocks when a car actually sells. Approval is the gate on being
+   PAID, not on taking part; see require_active_user(). Suspended stays out. */
 function current_user(): ?array {
     start_user_session();
     if (empty($_SESSION['uid'])) return null;
@@ -146,7 +151,7 @@ function current_user(): ?array {
     $st = db()->prepare('SELECT id,name,email,role,status,referral_code,commission_pct FROM users WHERE id = :id');
     $st->execute([':id' => (int)$_SESSION['uid']]);
     $u = $st->fetch();
-    if (!$u || $u['status'] !== 'Active') return null;
+    if (!$u || !in_array($u['status'], ['Active', 'Pending'], true)) return null;
     return $u;
 }
 
@@ -157,6 +162,17 @@ function require_user(?string $role = null): array {
     if (method() !== 'GET') {
         $origin = $_SERVER['HTTP_ORIGIN'] ?? ''; $host = $_SERVER['HTTP_HOST'] ?? '';
         if ($origin !== '' && parse_url($origin, PHP_URL_HOST) !== $host) json_err('Cross-origin request blocked.', 403);
+    }
+    return $u;
+}
+
+/** For anything that moves money out. A Pending account earns but cannot cash
+    out — that is the whole point of keeping the approval step. */
+function require_active_user(?string $role = null): array {
+    $u = require_user($role);
+    if ($u['status'] !== 'Active') {
+        json_err('Your account is still being reviewed. You can keep sharing and earning — '
+            . 'withdrawals open as soon as NEJ Autos approves you.', 403, ['pending' => true]);
     }
     return $u;
 }

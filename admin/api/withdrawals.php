@@ -45,8 +45,11 @@ if ($isAdminCall) {
     json_err('Method not allowed.', 405);
 }
 
-/* =============================== USER =================================== */
-$user = require_user();
+/* =============================== USER ===================================
+   Withdrawing is the one thing an unapproved partner cannot do: they may share,
+   earn and watch a balance build, but money only leaves once a human has
+   approved the account. */
+$user = require_active_user();
 $uid = (int)$user['id'];
 
 if (method() === 'GET') {
