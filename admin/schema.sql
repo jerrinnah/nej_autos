@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS `leads` (
   `vehicle`    VARCHAR(200) NOT NULL DEFAULT '',
   `car_id`     INT UNSIGNED NULL,
   `phone`      VARCHAR(80)  NOT NULL DEFAULT '',
-  `value`      BIGINT       NOT NULL DEFAULT 0,
+  `value`      BIGINT       NOT NULL DEFAULT 0,   -- the visitor's offer: NEVER used to compute money
+  `final_price` BIGINT      NULL,                  -- agreed price, set by an admin; drives commission
   `status`     VARCHAR(20)  NOT NULL DEFAULT 'New',     -- New | Contacted | Financing | Won | Lost
   `via_share`  VARCHAR(40)  NULL,                       -- platform if lead came via a share link
   `ref`        VARCHAR(60)  NULL,                       -- referral code of attributing partner

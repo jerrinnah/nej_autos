@@ -29,6 +29,25 @@ if (method() === 'POST' && $id === 0 && (string)param('_delete', '') !== '1') {
     ];
     if ($lead[':customer'] === '') json_err('Customer name is required.', 422);
 
+    /* ---- offer floor ----
+       An offer is a negotiating position, not a payment, so it is stored on the
+       lead and never used to compute money (see settle_sale). What it does need
+       is a floor: without one a ₦40M car collects ₦2M offers and the admin stops
+       reading them. Anonymous offers are checked against the car's REAL price. */
+    if (!current_admin() && $lead[':value'] > 0 && $lead[':car_id']) {
+        $cq = db()->prepare('SELECT price FROM cars WHERE id = :id');
+        $cq->execute([':id' => $lead[':car_id']]);
+        $ask = (int)$cq->fetchColumn();
+        $pct = max(0, min(100, (int)setting('min_offer_pct', '85')));
+        if ($ask > 0 && $pct > 0) {
+            $floor = (int)ceil($ask * $pct / 100);
+            if ($lead[':value'] < $floor) {
+                json_err('That offer is below what we can consider on this car. The lowest we look at is '
+                    . money_ngn($floor) . '.', 422, ['minOffer' => $floor, 'asking' => $ask]);
+            }
+        }
+    }
+
     // An admin can set any status; anonymous enquiries are forced to 'New'.
     if (!current_admin()) $lead[':status'] = 'New';
 
@@ -68,6 +87,8 @@ if (method() === 'POST' || method() === 'PUT') {
     }
     foreach (['customer','vehicle','phone','note'] as $k) if (isset($b[$k])) $fields[$k] = s($b[$k]);
     if (isset($b['value'])) $fields['value'] = max(0, (int)$b['value']);
+    // Admin-only, and the only lead figure settle_sale will pay a commission on.
+    if (isset($b['final_price'])) $fields['final_price'] = max(0, (int)$b['final_price']) ?: null;
     if (!$fields) json_err('Nothing to update.', 422);
 
     $sets = implode(', ', array_map(fn($k) => "$k = :$k", array_keys($fields)));
@@ -91,6 +112,7 @@ function shape_lead(array $r): array {
         'id' => (int)$r['id'], 'customer' => $r['customer'], 'vehicle' => $r['vehicle'],
         'car_id' => $r['car_id'] !== null ? (int)$r['car_id'] : null,
         'phone' => $r['phone'], 'value' => (int)$r['value'], 'status' => $r['status'],
+        'final_price' => isset($r['final_price']) && $r['final_price'] !== null ? (int)$r['final_price'] : null,
         'via_share' => $r['via_share'], 'ref' => $r['ref'], 'note' => $r['note'],
         'date' => substr((string)$r['created_at'], 0, 10),
     ];

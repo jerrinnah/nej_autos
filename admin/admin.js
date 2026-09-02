@@ -616,8 +616,13 @@ let leadFilter = 'all';
 const LEAD_STATUS = ['New', 'Contacted', 'Financing', 'Won', 'Lost'];
 
 async function viewLeads() {
-  const r = await api('leads.php');
+  // Cars come along so the Won prompt can suggest the asking price.
+  const [r, rc] = await Promise.all([
+    api('leads.php'),
+    api('cars.php?public=1').catch(() => ({ cars: [] })),
+  ]);
   store.leads = r.leads;
+  store.cars = rc.cars || store.cars || [];
   setTopbar('Leads', `${store.leads.length} enquiries · ${store.leads.filter(l => l.status === 'New').length} new`);
   renderLeads();
 }
@@ -635,13 +640,16 @@ function renderLeads() {
     <div class="toolbar"><div class="seg">${seg}</div></div>
     <div class="panel"><div class="tbl-wrap">
       ${list.length ? `<table class="tbl">
-        <thead><tr><th>Customer</th><th>Vehicle</th><th>Contact</th><th class="num">Value</th><th>Source</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <thead><tr><th>Customer</th><th>Vehicle</th><th>Contact</th><th class="num">Offer</th><th class="num">Sold for</th><th>Source</th><th>Status</th><th>Date</th><th></th></tr></thead>
         <tbody>${list.map(l => `
           <tr>
             <td class="cell-main">${esc(l.customer)}</td>
             <td>${esc(l.vehicle || '—')}</td>
             <td class="cell-sub">${esc(l.phone || '—')}</td>
-            <td class="num">${l.value ? money(l.value) : '—'}</td>
+            <td class="num">${l.value ? money(l.value) : '<span class="cell-sub">—</span>'}</td>
+            <td class="num">${l.final_price
+              ? `<span class="cell-main">${money(l.final_price)}</span>`
+              : (l.status === 'Won' ? '<span class="pill amber">asking price</span>' : '<span class="cell-sub">—</span>')}</td>
             <td>${l.via_share ? `<span class="pill purple">${esc(l.via_share)}</span>` : '<span class="cell-sub">direct</span>'}</td>
             <td>
               <select class="input" style="padding:.35rem .6rem;min-width:120px" data-status="${l.id}">
@@ -657,10 +665,30 @@ function renderLeads() {
 
   $$('[data-seg]').forEach(b => b.addEventListener('click', () => { leadFilter = b.dataset.seg; renderLeads(); }));
   $$('[data-status]').forEach(sel => sel.addEventListener('change', async () => {
-    try { await api(`leads.php?id=${sel.dataset.status}`, { method: 'POST', body: { status: sel.value } });
-      const l = store.leads.find(x => x.id == sel.dataset.status); if (l) l.status = sel.value;
+    const lead = store.leads.find(x => x.id == sel.dataset.status);
+    const body = { status: sel.value };
+
+    // Marking a sale Won settles the partner's commission, and it settles on the
+    // price the car ACTUALLY sold for. Ask once, here, because after settlement
+    // the ledger entry is written and editing the lead will not revise it.
+    if (sel.value === 'Won' && lead && !lead.final_price) {
+      const car = (store.cars || []).find(c => c.id === lead.car_id);
+      const suggested = lead.value || (car ? car.price : 0);
+      const typed = prompt(
+        'What did this car actually sell for?\n\n' +
+        'Commission is calculated from this figure — leave it as the asking price ' +
+        'if there was no discount.',
+        suggested || '');
+      if (typed === null) { renderLeads(); return; }          // cancelled: no status change
+      const agreed = parseInt(String(typed).replace(/[^\d]/g, ''), 10) || 0;
+      if (agreed > 0) body.final_price = agreed;
+    }
+
+    try {
+      await api(`leads.php?id=${sel.dataset.status}`, { method: 'POST', body });
+      if (lead) { lead.status = sel.value; if (body.final_price) lead.final_price = body.final_price; }
       toast('Lead updated', 'ok'); renderLeads();
-    } catch (e) { toast(e.message, 'err'); }
+    } catch (e) { toast(e.message, 'err'); renderLeads(); }
   }));
   $$('[data-del-lead]').forEach(b => b.addEventListener('click', async () => {
     if (!confirm('Delete this lead?')) return;
@@ -1072,6 +1100,7 @@ async function viewSettings() {
         <div class="form-grid">
           <div class="field"><label>Broker commission %</label><input class="input" id="set_rate" type="number" step="0.1" value="${s.broker_rate_pct}"></div>
           <div class="field"><label>Minimum commission per sale (₦)</label><input class="input" id="set_mincomm" type="number" value="${s.min_commission_ngn}"></div>
+          <div class="field"><label>Lowest offer accepted (% of asking)</label><input class="input" id="set_minoffer" type="number" value="${s.min_offer_pct}"></div>
           <div class="field"><label>Points per unique click</label><input class="input" id="set_cp" type="number" value="${s.click_points}"></div>
           <div class="field"><label>₦ value per point</label><input class="input" id="set_pv" type="number" value="${s.point_value_ngn}"></div>
           <div class="field"><label>Distributor sale bonus (₦)</label><input class="input" id="set_bonus" type="number" value="${s.distributor_sale_bonus_ngn}"></div>
@@ -1085,6 +1114,7 @@ async function viewSettings() {
         <p class="cell-sub">Share reward is paid per counted share (up to the daily cap) and unlocks when a car the partner shared is sold. A partner who shares <b>${+s.share_streak_days || 7} days running</b> gets <b>${+s.max_counted_shares_streak || 4}</b> counted shares a day instead of ${+s.max_counted_shares_per_day || 2}.</p>
         <p class="cell-sub">The <b>minimum commission</b> is a floor, not a bonus: a sale worth less than ₦${((+s.min_commission_ngn || 0) / (+s.broker_rate_pct || 1) * 100).toLocaleString('en-NG', { maximumFractionDigits: 0 })} pays the floor instead of the percentage. Set it to 0 to pay strictly by percentage.</p>
         <p class="cell-sub">With <b>first payout same-day</b> on, a partner who has never been paid is flagged <span class="pill amber">1st payout</span> on the Withdrawals screen — clear those the day they arrive.</p>
+        <p class="cell-sub">Buyers can <b>make an offer</b> from a car's page. Anything under <b>${+s.min_offer_pct || 85}%</b> of the asking price is refused before it reaches you, so the Leads screen stays worth reading. Set it to 0 to accept any offer. An offer never sets a commission — when you mark a lead <b>Won</b> you are asked what the car actually sold for, and that figure is what the partner is paid on.</p>
         <button class="btn btn-primary" id="saveSet">Save settings</button>
       </div>
     </div>
@@ -1142,6 +1172,7 @@ async function viewSettings() {
       share_reward_ngn: +$('#set_sharereward').value, max_counted_shares_per_day: +$('#set_sharecap').value,
       share_streak_days: +$('#set_streakdays').value, max_counted_shares_streak: +$('#set_streakcap').value,
       min_commission_ngn: +$('#set_mincomm').value, first_payout_same_day: +$('#set_firstpay').value,
+      min_offer_pct: +$('#set_minoffer').value,
       min_withdrawal_ngn: +$('#set_min').value } });
     toast('Settings saved', 'ok');
   });
