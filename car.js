@@ -7,7 +7,6 @@
 'use strict';
 
 const PORTAL_KEY = 'nej_portal_v1';
-const ATTR_KEY = 'nej_attributions';
 const BGS = [
   'linear-gradient(135deg,#1e3a8a,#3b82f6)',
   'linear-gradient(135deg,#7c2d12,#f59e0b)',
@@ -114,6 +113,7 @@ function render() {
 
         <div class="actions" id="actions">
           <button class="btnx btnx-primary" onclick="showEnquiry()">I'm interested →</button>
+          <button class="btnx btnx-outline" onclick="showEnquiry(true)">Make an offer</button>
           <button class="btnx btnx-outline" onclick="openShare()">🔗 Share &amp; earn</button>
         </div>
 
@@ -152,61 +152,104 @@ function initCarousel() {
 }
 
 /* ------------------------------ Enquiry --------------------------------- */
-function showEnquiry() {
+/* `offer` opens the same form with the amount field pre-focused. An offer is a
+   negotiating position: it is stored on the lead and shown to the admin, but it
+   never computes anyone's commission — only an admin-confirmed final price does
+   that (see settle_sale). The server also refuses offers under a floor. */
+function showEnquiry(offer) {
   document.getElementById('actions').innerHTML = `
     <div class="enq-form">
       <input id="bName" placeholder="Your name">
-      <input id="bContact" placeholder="Phone or email">
-      <button class="btnx btnx-primary" onclick="enquire()">Send enquiry →</button>
+      <input id="bContact" placeholder="Phone or WhatsApp">
+      <input id="bOffer" inputmode="numeric" placeholder="Your offer in ₦ (optional)">
+      <p class="enq-hint" id="bHint">Asking ${money(car.price)}. Leave the offer blank to just enquire.</p>
+      <button class="btnx btnx-primary" id="bSend" onclick="enquire()">${offer ? 'Send offer →' : 'Send enquiry →'}</button>
       <button class="btnx btnx-outline" onclick="render()">Cancel</button>
     </div>`;
-  document.getElementById('bName').focus();
+  document.getElementById(offer ? 'bOffer' : 'bName').focus();
 }
 
-function enquire() {
-  const name = document.getElementById('bName').value.trim();
+async function enquire() {
+  const name    = document.getElementById('bName').value.trim();
   const contact = document.getElementById('bContact').value.trim();
-  if (!name) { document.getElementById('bName').focus(); return; }
+  const offerEl = document.getElementById('bOffer');
+  const hint    = document.getElementById('bHint');
+  const btn     = document.getElementById('bSend');
+  const offer   = offerEl ? parseInt(String(offerEl.value).replace(/[^\d]/g, ''), 10) || 0 : 0;
 
+  if (!name)    { document.getElementById('bName').focus(); return; }
+  if (!contact) { document.getElementById('bContact').focus(); return; }
+
+  btn.disabled = true;
+  const was = btn.textContent;
+  btn.textContent = 'Sending…';
+
+  /* The lead goes to the server — this used to write only to localStorage, so
+     every car-page enquiry was lost. localStorage is still written afterwards
+     so a signed-in partner sees it in their portal immediately. */
+  let res;
+  try {
+    const r = await fetch('/admin/api/leads.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        customer: name,
+        phone: contact,
+        car_id: car.id,
+        vehicle: `${car.make} ${car.model}`,
+        value: offer,
+        ref: car.ref || '',
+        via_share: car.ref ? 'shared link' : '',
+        note: offer ? `Offer of ${money(offer)} against ${money(car.price)} asking.` : '',
+      }),
+    });
+    res = await r.json().catch(() => null);
+    if (!r.ok || !res || !res.ok) {
+      btn.disabled = false;
+      btn.textContent = was;
+      if (hint) {
+        hint.textContent = (res && res.message)
+          ? res.message
+          : 'That did not send. Please try again, or call us.';
+        hint.classList.add('is-error');
+      }
+      return;
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = was;
+    if (hint) { hint.textContent = 'Network problem — please try again.'; hint.classList.add('is-error'); }
+    return;
+  }
+
+  // Mirror into the referring partner's portal if they are signed in here.
   const lead = {
-    id: 'lead-' + Date.now(),
+    id: 'lead-' + (res.id || Date.now()),
     customer: name,
     vehicle: `${car.make} ${car.model}`,
-    phone: contact || '—',
-    value: car.price,
+    phone: contact,
+    value: offer || car.price,
     status: 'New',
-    date: '2026-07-13',
+    date: new Date().toISOString().slice(0, 10),
     viaShare: 'shared link',
     ref: car.ref,
   };
-
-  // If the referring partner is logged in on THIS browser, drop the lead straight
-  // into their portal so they see it attributed. Otherwise queue it for later sync.
-  let landed = false;
   try {
     const raw = localStorage.getItem(PORTAL_KEY);
-    if (raw) {
-      const st = JSON.parse(raw);
-      if (st && st.referralCode === car.ref) {
-        st.leads.unshift(lead);
-        localStorage.setItem(PORTAL_KEY, JSON.stringify(st));
-        landed = true;
-      }
+    const st = raw ? JSON.parse(raw) : null;
+    if (st && st.referralCode === car.ref) {
+      st.leads.unshift(lead);
+      localStorage.setItem(PORTAL_KEY, JSON.stringify(st));
     }
-  } catch (e) { /* ignore */ }
-  if (!landed) {
-    try {
-      const q = JSON.parse(localStorage.getItem(ATTR_KEY) || '[]');
-      q.push(lead);
-      localStorage.setItem(ATTR_KEY, JSON.stringify(q));
-    } catch (e) { /* ignore */ }
-  }
+  } catch (e) { /* mirroring is a convenience; the server already has it */ }
 
   document.getElementById('actions').innerHTML = `
     <div class="success">
       <div class="big">✅</div>
       <p style="margin:0.3rem 0 0"><strong>Thanks, ${esc(name.split(' ')[0])}!</strong><br>
-      <span style="color:var(--muted);font-size:0.9rem">Sent to ${esc(car.by)} — you'll hear back shortly.</span></p>
+      <span style="color:var(--muted);font-size:0.9rem">${offer
+        ? `Your offer of ${money(offer)} is with our team — we'll call you back.`
+        : `We'll be in touch shortly.`}</span></p>
     </div>`;
 }
 

@@ -12,6 +12,7 @@ require_admin();
 $ALLOWED = [
     'broker_rate_pct'            => [0, 100],
     'min_commission_ngn'        => [0, 100000000],
+    'min_offer_pct'             => [0, 100],
     'click_points'              => [0, 100000],
     'point_value_ngn'           => [0, 1000000],
     'distributor_sale_bonus_ngn'=> [0, 100000000],
@@ -45,6 +46,7 @@ $DEFAULTS = [
     'leaderboard_winners' => '5',        'leaderboard_split_weighted' => '1',
     'leaderboard_min_clicks' => '1',     'leaderboard_public' => '1',
     'first_payout_same_day' => '1',      'hero_autoplay_ms' => '6000',
+    'min_offer_pct' => '85',
 ];
 
 if (method() === 'GET') {

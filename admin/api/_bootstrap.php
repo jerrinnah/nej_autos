@@ -288,6 +288,14 @@ function settle_sale(int $leadId): void {
         if ($cp !== false) $saleValue = (int)$cp;
     }
 
+    // Cars sell for less than they are listed at. final_price is what the sale
+    // actually closed for, and — unlike lead.value, which is whatever a visitor
+    // typed into the offer box — it can only be set through the admin API. So it
+    // is the one lead figure allowed to move money: without it a negotiated sale
+    // would pay commission on the asking price the buyer never paid.
+    $agreed = isset($lead['final_price']) ? (int)$lead['final_price'] : 0;
+    if ($agreed > 0) $saleValue = $agreed;
+
     if ($user['role'] === 'broker') {
         $rate = $user['commission_pct'] !== null
             ? (float)$user['commission_pct']

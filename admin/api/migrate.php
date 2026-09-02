@@ -44,6 +44,12 @@ try {
                     ADD COLUMN account_number VARCHAR(40) NOT NULL DEFAULT '' AFTER bank_name,
                     ADD COLUMN account_name VARCHAR(160) NOT NULL DEFAULT '' AFTER account_number");
     }
+    // Agreed sale price on a lead. Kept apart from `value` (the visitor's offer)
+    // because only this one is ever allowed to drive a commission.
+    if (!$hasCol('leads', 'final_price')) {
+        db()->exec("ALTER TABLE leads ADD COLUMN final_price BIGINT NULL AFTER value");
+    }
+
     // Defaults for the per-share reward — never overwrite an admin's custom value.
     $ins = db()->prepare("INSERT IGNORE INTO settings (k, v) VALUES (:k, :v)");
     $ins->execute([':k' => 'share_reward_ngn', ':v' => '800']);
@@ -60,6 +66,7 @@ try {
     $ins->execute([':k' => 'max_counted_shares_streak', ':v' => '4']);
     $ins->execute([':k' => 'leaderboard_public', ':v' => '1']);
     $ins->execute([':k' => 'first_payout_same_day', ':v' => '1']);
+    $ins->execute([':k' => 'min_offer_pct', ':v' => '85']);
 } catch (Throwable $e) {
     json_err('Share-tracking migration failed: ' . $e->getMessage(), 500);
 }

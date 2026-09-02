@@ -131,7 +131,8 @@ INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
   ('leaderboard_split_weighted', '1'),       -- 1 = split by clicks, 0 = equal shares
   ('leaderboard_min_clicks',     '1'),       -- minimum capped unique clicks to qualify
   ('leaderboard_public',         '1'),       -- 1 = show the live top-sharer board on the homepage
-  ('first_payout_same_day',      '1');       -- 1 = advertise + flag same-day processing on a partner's first payout
+  ('first_payout_same_day',      '1'),       -- 1 = advertise + flag same-day processing on a partner's first payout
+  ('min_offer_pct',              '85');      -- offers below this % of the asking price are refused
 
 -- Ready-to-use demo accounts (already Active). Passwords:
 --   broker@nejautos.com      → BrokerDemo2026
