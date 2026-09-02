@@ -36,7 +36,7 @@ return [
     'cta_label' => '',
     'cta_href'  => '#fleet',
     'tabs'      => "Buy a car | #fleet\nShare & earn | #share\nBecome a partner | #apply",
-    'call_label'=> 'Talk to a specialist',
+    'call_label'=> 'Talk to us',
 ],
 
 /* --------------------------- callback request ---------------------------- */
