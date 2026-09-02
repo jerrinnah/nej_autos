@@ -124,7 +124,7 @@
           <!-- Call-to-buy. The number is the one set under Website → Footer →
                Contact, so there is only ever one to edit. -->
           <div class="hero-call" id="heroCall" hidden>
-            <span class="hero-call-lbl" id="heroCallLbl">Talk to a specialist</span>
+            <span class="hero-call-lbl" id="heroCallLbl">Talk to us</span>
             <a class="hero-call-num" id="heroCallNum" href="tel:08026038780">0802 603 8780</a>
           </div>
         </div>
@@ -206,12 +206,12 @@
           <div class="num">3</div>
           <div class="step-ico">💸</div>
           <h3>You get paid</h3>
-          <p>Earn <b>₦800 per share</b> plus your full tier commission if the buyer buys through your link. The month's top sharer wins <b>₦300,000</b>.</p>
+          <p>Earn <b>₦800 per share</b> plus your full tier commission if the buyer buys through your link.</p>
         </div>
       </div>
       <div class="earn-band" id="earnBand">
         <div class="earn-chip"><div class="v">₦800</div><div class="k">Per counted share · 2/day, 4/day on a streak</div></div>
-        <div class="earn-chip"><div class="v">₦300,000</div><div class="k">Monthly top-sharer prize</div></div>
+        <div class="earn-chip"><div class="v">{prize}</div><div class="k">Monthly top-sharer prize</div></div>
         <div class="earn-chip"><div class="v">₦100,000</div><div class="k">Per referred partner who sells</div></div>
         <div class="earn-chip"><div class="v">₦250,000</div><div class="k">Bonus per EV / premium sold</div></div>
       </div>
@@ -615,6 +615,7 @@
             return '<div class="earn-chip"><div class="v">' + escapeHtml(ch.v) + '</div>' +
               '<div class="k">' + escapeHtml(ch.k) + '</div></div>';
           }).join(''));
+          syncPrize(null);   // the two fetches race; re-apply if the pool is known
         }
       }
 
@@ -922,13 +923,36 @@
        Proof that partners are ranking — and getting paid — right now.
        Public, read-only and deliberately thin (rank, short name, clicks).
        The section stays hidden unless the board is on and somebody ranks. */
+    /* The reward band must never advertise a prize the system would not pay.
+       The pool lives in Settings → Top-sharer bonus; at 0 the bonus is off, so
+       the chip is removed rather than left showing a number. Handles both the
+       {prize} token and a chip still holding a hard-coded amount from before. */
+    var PRIZE_POOL = null;      // set once the live board answers
+    function syncPrize(pool) {
+      if (pool !== null) PRIZE_POOL = +pool || 0;
+      pool = PRIZE_POOL;
+      if (pool === null) return;
+      var chips = document.querySelectorAll('#earnBand .earn-chip');
+      Array.prototype.forEach.call(chips, function (chip) {
+        var v = chip.querySelector('.v'), k = chip.querySelector('.k');
+        if (!v || !k) return;
+        var isToken  = v.textContent.trim() === '{prize}';
+        var isLegacy = /top[- ]sharer prize/i.test(k.textContent);
+        if (!isToken && !isLegacy) return;
+        if (pool > 0) v.textContent = money(pool);
+        else chip.remove();
+      });
+    }
+
     function loadBoard() {
       var sec = document.getElementById('board');
       if (!sec) return;
       fetch('/admin/api/leaderboard.php?public=1', { headers: { 'Accept': 'application/json' } })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (!d || !d.ok || !d.enabled) return;             // switched off in Settings
+          if (!d || !d.ok) return;
+          syncPrize(d.pool);                                 // runs even when the board is off
+          if (!d.enabled) return;                            // switched off in Settings
           var rows = d.rows || [];
           var list = document.getElementById('boardList');
           var note = document.getElementById('boardNote');
@@ -958,7 +982,11 @@
           }
           sec.hidden = false;
         })
-        .catch(function () { /* board is a bonus — a failed fetch leaves it hidden */ });
+        .catch(function () {
+          // The board is a bonus, so a failed fetch leaves it hidden — but the
+          // token must never survive as visible text.
+          syncPrize(0);
+        });
     }
     // Shown only when there is a number to call.
     (function () {
