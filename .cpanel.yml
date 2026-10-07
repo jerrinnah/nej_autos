@@ -9,6 +9,9 @@
 # the old per-file `cp` did — it never deletes anything already on the server.
 deployment:
   tasks:
+    # $HOME here is the cPanel account's real home (/home/<cpanel user>), not an
+    # FTP sub-account's, so this path stays public_html — unlike server-dir in
+    # .github/workflows/deploy.yml, which is relative to the FTP account's home.
     - export DEPLOYPATH=$HOME/public_html/
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/tar -cf - --exclude='.git*' --exclude='.github' --exclude='.vercel' --exclude='.cpanel.yml' --exclude='.DS_Store' --exclude='admin/config.php' --exclude='admin/uploads/cars' --exclude='admin/uploads/site' . | /bin/tar -xf - -C $DEPLOYPATH
