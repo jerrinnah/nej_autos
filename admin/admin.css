@@ -377,3 +377,26 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .88rem; min-width
 .imp-fxin span:last-child { font-weight: 600; color: var(--muted); font-size: .86rem; }
 .imp-fxin .input { width: 130px; padding: .55rem .75rem; font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .imp-fxbar [hidden] { display: none; }
+/* Copart link + maximum bid */
+.imp-opt-tag { font-weight: 600; color: var(--faint); font-size: .72rem; margin-left: .3rem; letter-spacing: 0; }
+.imp-linkrow { display: flex; gap: .5rem; align-items: center; }
+.imp-linkrow .input { flex: 1; min-width: 0; }
+.imp-linkinfo { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem; margin-top: .55rem; font-size: .8rem; }
+.imp-linkinfo a { color: var(--accent-2); font-weight: 650; text-decoration: none; }
+.imp-linkinfo a:hover { text-decoration: underline; }
+.imp-maxbid { margin-top: 1rem; padding: .85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: rgba(255,255,255,.03); }
+.imp-maxbid b { display: block; font-size: 1.5rem; margin: .2rem 0 .15rem; font-variant-numeric: tabular-nums; }
+.imp-maxbid .cell-sub { display: block; }
+.imp-maxbid.good { border-color: rgba(52,211,153,.35); background: var(--green-soft); }
+.imp-maxbid.good b { color: var(--green); }
+.imp-maxbid.bad { border-color: rgba(248,113,113,.35); background: var(--red-soft); }
+.imp-maxbid.bad b { color: #fca5a5; }
+.imp-bmlink { display: block; margin-top: .55rem; padding: 0; border: 0; background: none; color: var(--accent-2); font: inherit; font-size: .8rem; font-weight: 650; cursor: pointer; text-align: left; }
+.imp-bmlink:hover { text-decoration: underline; }
+.imp-steps { margin: 0 0 1rem; padding-left: 1.2rem; font-size: .86rem; line-height: 1.9; color: var(--muted); }
+.imp-steps b { color: var(--text); }
+.imp-bm { cursor: grab; vertical-align: middle; }
+.imp-vs { list-style: none; margin: .7rem 0 0; padding: .6rem 0 0; border-top: 1px solid var(--border); display: grid; gap: .35rem; font-size: .8rem; }
+.imp-vs li { display: flex; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+.imp-vs li.ok span:last-child { color: var(--green); font-weight: 650; }
+.imp-vs li.over span:last-child { color: #fca5a5; font-weight: 650; }

@@ -15,8 +15,10 @@ $id = (int)param('id', 0);
 // The calculator fields we keep, by type. Anything else in `inputs` is dropped.
 const QUOTE_NUM = ['buy_usd', 'truck_usd', 'ship_usd', 'wire_usd', 'comm_usd', 'clearing_ngn',
     'miles', 'base_rate', 'ins_pct', 'duty_pct', 'levy_pct', 'surcharge_pct', 'etls_pct', 'ciss_pct', 'vat_pct',
-    'agent_ngn', 'port_ngn', 'transport_ngn', 'reg_ngn', 'prep_ngn', 'markup_pct'];
-const QUOTE_BOOL = ['use_truck_est', 'door', 'protect', 'use_customs', 'use_local', 'use_markup'];
+    'agent_ngn', 'port_ngn', 'transport_ngn', 'reg_ngn', 'prep_ngn', 'markup_pct', 'sell_ngn', 'profit_ngn', 'bid_usd', 'bin_usd'];
+const QUOTE_BOOL = ['use_truck_est', 'door', 'protect', 'use_customs', 'use_local', 'use_markup', 'use_maxbid'];
+// Read from a pasted Copart link: field => max length.
+const QUOTE_STR = ['lot' => 12, 'location' => 80, 'title_type' => 60];
 const QUOTE_ENUM = ['vtype' => ['sedan', 'suv', 'pickup', 'luxury'], 'ship' => ['open', 'enclosed', 'expedited']];
 
 if (method() === 'DELETE' || (method() === 'POST' && (string)param('_delete', '') === '1')) {
@@ -62,6 +64,10 @@ function clean_inputs(array $in): array {
     foreach (QUOTE_NUM as $k) if (array_key_exists($k, $in) && is_numeric($in[$k])) $out[$k] = max(0, min(1e12, (float)$in[$k]));
     foreach (QUOTE_BOOL as $k) if (array_key_exists($k, $in)) $out[$k] = (bool)$in[$k];
     foreach (QUOTE_ENUM as $k => $ok) if (in_array($in[$k] ?? null, $ok, true)) $out[$k] = $in[$k];
+    foreach (QUOTE_STR as $k => $max) if (is_string($in[$k] ?? null)) $out[$k] = mb_substr(trim($in[$k]), 0, $max);
+    // Only ever a Copart lot URL — it is rendered as a link in the admin.
+    $url = is_string($in['copart_url'] ?? null) ? trim($in['copart_url']) : '';
+    if (preg_match('~^https://www\.copart\.com/lot/\d{5,10}(/[a-z0-9-]{1,200})?$~', $url)) $out['copart_url'] = $url;
     return $out;
 }
 

@@ -57,6 +57,18 @@ const store = { admin: null, cars: [], leads: [], partners: [], payouts: [], sha
   notif: { pending: 0, today: 0, sharesToday: 0, recent: [] } };
 let currentView = 'overview';
 
+/* The Copart bookmark opens  admin/#import?copart=…&bid=…&bin=…  — note it,
+   jump to the calculator, and tidy the address bar. Applied in viewImport(). */
+let pendingImport = null;
+(function readImportHash() {
+  const h = location.hash || '';
+  if (!h.startsWith('#import')) return;
+  currentView = 'import';
+  const i = h.indexOf('?');
+  if (i > 0) pendingImport = Object.fromEntries(new URLSearchParams(h.slice(i + 1)));
+  try { history.replaceState(null, '', location.pathname + location.search); } catch { /* ignore */ }
+})();
+
 /* Notifications — the "seen" watermark is the highest signup id the admin has
    opened. Kept in localStorage so the bell is per-device, no server state. */
 const SEEN_KEY = 'nej_admin_seen_signup';
@@ -1118,6 +1130,10 @@ const IMP_DEFAULTS = {
   use_customs: false, ...IMP_RATES, agent_ngn: 350000,
   use_local: false, port_ngn: 0, transport_ngn: 0, reg_ngn: 0, prep_ngn: 0,
   use_markup: false, markup_pct: 12,
+  use_maxbid: false, sell_ngn: 0, profit_ngn: 0,
+  // read from a pasted Copart lot link
+  copart_url: '', lot: '', location: '', title_type: '',
+  bid_usd: 0, bin_usd: 0,             // current bid / Buy It Now, for reference
 };
 
 function impLoad() {
@@ -1158,6 +1174,154 @@ function impCalc(v) {
     cif, duty, levy, surcharge, etls, ciss, vat, customs, clearing, local, landed, price, profit: price - landed };
 }
 
+/* Highest Buying figure that still leaves the profit you want. Landed cost is
+   linear in the buying price (customs too, when estimated), so two points give
+   the exact line and it can be solved directly. */
+function impMaxBid(v) {
+  const sell = Math.max(0, +v.sell_ngn || 0), want = Math.max(0, +v.profit_ngn || 0);
+  const at0 = impCalc({ ...v, buy_usd: 0 }).landed;
+  const perUsd = (impCalc({ ...v, buy_usd: 1000 }).landed - at0) / 1000;
+  const max = perUsd > 0 ? (sell - want - at0) / perUsd : 0;
+  return { sell, want, max };
+}
+
+/* Copart lot links carry the car in the URL itself, e.g.
+     https://www.copart.com/lot/41234567/clean-title-2019-toyota-venza-le-tx-houston
+   → lot 41234567, "2019 Toyota Venza LE", "Houston, TX", "Clean title".
+   Nothing is fetched from Copart — its pages are bot-protected and scraping is
+   against its terms — so this only reads the link. */
+const IMP_US_STATES = new Set('al ak az ar ca co ct de fl ga hi id il in ia ks ky la me md ma mi mn ms mo mt ne nv nh nj nm ny nc nd oh ok or pa ri sc sd tn tx ut vt va wa wv wi wy dc'.split(' '));
+const IMP_UPPER = new Set(['bmw', 'gmc', 'ram', 'vw', 'amg', 'srt', 'awd', 'fwd', 'rwd', '4wd', '2wd', '4x4', 'suv', 'ev', 'phev']);
+function impParseCopart(raw) {
+  let u;
+  try { u = new URL(String(raw || '').trim()); } catch { return null; }
+  if (!/(^|\.)copart\.com$/i.test(u.hostname)) return null;
+  const m = u.pathname.match(/\/lot\/(\d{5,10})(?:\/([a-z0-9-]+))?/i);
+  if (!m) return null;
+  const slug = (m[2] || '').toLowerCase();
+  const out = { copart_url: `https://www.copart.com/lot/${m[1]}${slug ? '/' + slug : ''}`, lot: m[1], label: '', location: '', title_type: '' };
+  const t = slug.split('-').filter(Boolean);
+  const yi = t.findIndex(w => /^(19|20)\d\d$/.test(w));
+  if (yi < 0) return out;
+
+  let si = -1;                                          // last US state code = start of the location
+  for (let i = t.length - 1; i > yi + 1; i--) if (IMP_US_STATES.has(t[i])) { si = i; break; }
+  const title = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+  const car = t.slice(yi, si > 0 ? si : t.length).map((w, i) => {
+    if (i === 0) return w;                                // year
+    if (IMP_UPPER.has(w)) return w.toUpperCase();
+    if (i === 1) return title(w);                         // make
+    return (/\d/.test(w) || w.length <= 3) ? w.toUpperCase() : title(w);   // RAV4, LE, XLE
+  });
+  out.label = car.join(' ');
+  if (si > 0) {
+    const city = t.slice(si + 1).map(title).join(' ');
+    out.location = (city ? city + ', ' : '') + t[si].toUpperCase();
+  }
+  const tt = t.slice(0, yi).join(' ');
+  out.title_type = tt ? title(tt) : '';
+  return out;
+}
+
+/* Fill a draft from a parsed Copart link. A different lot clears the old bid /
+   Buy It Now, and never overwrites the saved quote that's open. Empty usual
+   costs are borrowed from the most recent saved quote. Returns what it filled. */
+function impApplyLink(v, c) {
+  if (v.lot !== c.lot) {
+    if (v.quote_id && v.lot) v.quote_id = null;
+    v.bid_usd = 0; v.bin_usd = 0;
+  }
+  Object.assign(v, { copart_url: c.copart_url, lot: c.lot, location: c.location, title_type: c.title_type });
+  if (c.label) v.label = c.label;
+  const last = impQuotes.find(q => q.id !== v.quote_id);
+  const filled = [];
+  if (last) [['truck_usd', 'trucking'], ['ship_usd', 'shipping'], ['wire_usd', 'wire'], ['comm_usd', 'commission'], ['clearing_ngn', 'clearing']]
+    .forEach(([k, name]) => { if (!(+v[k]) && +last.inputs[k]) { v[k] = last.inputs[k]; filled.push(name); } });
+  return { filled, from: last ? last.label : '' };
+}
+
+/* Bookmarklet that runs on a Copart lot page in the admin's own browser and
+   opens the calculator with the lot's current bid and Buy It Now. It first asks
+   Copart's own lot-details JSON (same origin, so the user's session applies),
+   then falls back to reading the labels on the page. Copart can change either
+   at any time — if the numbers stop coming through, this is the place to fix. */
+function impBookmarklet() {
+  const admin = location.origin + location.pathname;
+  const src = String.raw`(function(){
+    var A=${JSON.stringify(admin)};
+    var m=location.pathname.match(/\/lot\/(\d{5,10})/);
+    if(!/(^|\.)copart\.com$/.test(location.hostname)||!m){alert('Open a Copart lot page first, then click this.');return;}
+    var w=window.open('about:blank','_blank');
+    var lot=m[1],bid=0,bin=0,label='';
+    function num(x){x=String(x==null?'':x).replace(/[^0-9.]/g,'');return x?Math.round(+x):0;}
+    function grab(re){
+      var els=document.querySelectorAll('label,span,div,dt,dd,th,td,h4,h5,p,strong,b');
+      for(var k=0;k<els.length;k++){
+        var el=els[k],t=(el.textContent||'').replace(/\s+/g,' ').trim();
+        if(t.length>40||!re.test(t))continue;
+        for(var n=el,i=0;i<4&&n;i++,n=n.parentElement){
+          var tx=(n.innerText||'').replace(/\s+/g,' ');
+          var mm=tx.match(new RegExp(re.source+'[^$]{0,60}\\$\\s?([0-9,]+(?:\\.[0-9]{2})?)','i'));
+          if(mm)return num(mm[1]);
+        }
+      }
+      return 0;
+    }
+    function go(){
+      bid=bid||grab(/current bid/i);
+      bin=bin||grab(/buy it now/i);
+      var q='copart='+encodeURIComponent(location.origin+location.pathname)+'&lot='+lot+'&bid='+bid+'&bin='+bin+'&label='+encodeURIComponent(label);
+      var url=A+'#import?'+q;
+      if(w){w.location.href=url;}else{location.href=url;}
+    }
+    fetch('/public/data/lotdetails/solr/'+lot,{credentials:'include',headers:{Accept:'application/json'}})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        var d=(j&&j.data&&j.data.lotDetails)||{},dy=d.dynamicLotDetails||{};
+        bid=num(dy.currentBid);bin=num(d.bnp||dy.buyTodayBid);
+        label=[d.lcy,d.mkn,d.lm,d.ltd].filter(Boolean).join(' ');
+      })
+      .catch(function(){})
+      .then(go);
+  })();`;
+  return 'javascript:' + encodeURIComponent(src.replace(/\n\s*/g, ''));
+}
+
+function impBookmarkModal() {
+  const bm = impBookmarklet();
+  openModal('Send Copart lots to the calculator', `
+    <p class="cell-sub" style="margin-top:0">A bookmark button for your browser. Open any lot on Copart, click it, and this calculator opens with the car, the <b>current bid</b> and the <b>Buy It Now</b> price filled in.</p>
+    <h4 class="notif-h">On a laptop (Chrome, Edge, Safari, Firefox)</h4>
+    <ol class="imp-steps">
+      <li>Show your bookmarks bar: <b>Ctrl+Shift+B</b> (Windows) or <b>⌘+Shift+B</b> (Mac).</li>
+      <li>Drag this button onto the bar: <a class="btn btn-primary btn-sm imp-bm" href="${attr(bm)}" onclick="event.preventDefault();toast('Drag it to your bookmarks bar — clicking only works on a Copart lot page')">⭐ Send to NEJ</a></li>
+      <li>On a Copart lot page, click <b>Send to NEJ</b>.</li>
+    </ol>
+    <h4 class="notif-h">Can't drag? Make it by hand</h4>
+    <ol class="imp-steps">
+      <li>Bookmark any page, then edit that bookmark.</li>
+      <li>Name it <b>Send to NEJ</b> and replace its address with the code below.</li>
+    </ol>
+    <div class="imp-linkrow"><input class="input" id="impBmCode" readonly value="${attr(bm)}"><button class="btn btn-ghost btn-sm" data-imp-bmcopy>Copy code</button></div>
+    <p class="cell-sub">If a price comes through as $0, Copart didn't show it on that page (no Buy It Now on the lot, or the bid hasn't loaded) — type it in. If it stops working for every lot, Copart has changed its page; tell your developer.</p>
+  `, '', null, 'Done');
+  $('[data-imp-bmcopy]').addEventListener('click', () => {
+    navigator.clipboard?.writeText(bm).then(() => toast('Code copied', 'ok'), () => { $('#impBmCode').select(); toast('Select and copy it', ''); });
+  });
+}
+
+function impLinkInfo(v) {
+  if (!v.lot) return '';
+  const clean = /^clean/i.test(v.title_type || '');
+  const safe = /^https:\/\/www\.copart\.com\/lot\//.test(v.copart_url || '');
+  return `<div class="imp-linkinfo">
+    <span class="pill blue">Lot ${esc(v.lot)}</span>
+    ${v.location ? `<span class="pill grey">${esc(v.location)}</span>` : ''}
+    ${v.title_type ? `<span class="pill ${clean ? 'green' : 'amber'}">${esc(v.title_type)}</span>` : ''}
+    ${safe ? `<a href="${attr(v.copart_url)}" target="_blank" rel="noopener noreferrer">Open on Copart ↗</a>` : ''}
+  </div>`;
+}
+
 async function viewImport() {
   const [s, q] = await Promise.all([
     api('settings.php').catch(() => null),
@@ -1166,7 +1330,22 @@ async function viewImport() {
   impFx = impFxSaved = (s && +s.settings.usd_ngn_rate) || IMP_FX_DEFAULT;
   impQuotes = q.quotes || [];
   impQuotesErr = q.error || null;
-  impDraw(impLoad());
+  const v = impLoad();
+  if (pendingImport) {
+    const p = pendingImport; pendingImport = null;
+    const c = impParseCopart(p.copart);
+    if (c) {
+      const res = impApplyLink(v, c);
+      if (!v.label && p.label) v.label = String(p.label).slice(0, 80);
+      v.bid_usd = Math.max(0, Math.round(+p.bid || 0));
+      v.bin_usd = Math.max(0, Math.round(+p.bin || 0));
+      impSave(v);
+      const got = [v.bid_usd ? `bid $${v.bid_usd.toLocaleString('en-US')}` : '', v.bin_usd ? `Buy It Now $${v.bin_usd.toLocaleString('en-US')}` : ''].filter(Boolean);
+      setTimeout(() => toast(`Lot ${c.lot} from Copart${got.length ? ' — ' + got.join(', ') : ' — no prices found, type them in'}`
+        + (res.filled.length ? `. Filled ${res.filled.join(', ')} from "${res.from}".` : ''), got.length ? 'ok' : ''), 50);
+    } else toast("That didn't look like a Copart lot page", 'err');
+  }
+  impDraw(v);
 }
 
 function impDraw(v) {
@@ -1207,8 +1386,21 @@ function impDraw(v) {
           </div>
           <div class="panel-body">
             <div class="form-grid">
+              <div class="field full"><label for="imp_copart">Copart link <span class="imp-opt-tag">optional</span></label>
+                <div class="imp-linkrow">
+                  <input class="input" id="imp_copart" type="url" inputmode="url" placeholder="Paste a copart.com/lot/… link" value="${attr(v.copart_url)}">
+                  ${v.copart_url ? `<button class="btn btn-ghost btn-sm" data-imp-unlink>Clear</button>` : ''}
+                </div>
+                <div data-imp-linkmsg>${impLinkInfo(v)}</div>
+                <button class="imp-bmlink" data-imp-bm>⭐ Get the "Send to NEJ" button — fills this in from a Copart page, bid and Buy It Now included</button></div>
               <div class="field full"><label for="imp_label">Vehicle</label>
                 <input class="input" id="imp_label" data-imp="label" placeholder="e.g. 2014 Camry" value="${attr(v.label)}"></div>
+              ${[['bid_usd', 'Current bid ($)'], ['bin_usd', 'Buy It Now ($)']].map(([k, lbl]) => `
+                <div class="field"><label for="imp_${k}">${lbl} <span class="imp-opt-tag">optional</span></label>
+                  <div class="imp-linkrow">
+                    <input class="input" id="imp_${k}" data-imp="${k}" type="number" inputmode="decimal" min="0" step="any" value="${attr(v[k] || '')}" placeholder="0">
+                    <button class="btn btn-ghost btn-sm" data-imp-use="${k}" title="Copy into Buying">Use</button>
+                  </div></div>`).join('')}
               ${num('buy_usd', 'Buying ($)')}
               ${num('truck_usd', v.use_truck_est ? 'Trucking ($) · estimated below' : 'Trucking ($)', { disabled: v.use_truck_est })}
               ${num('ship_usd', 'Shipping ($)')}
@@ -1261,6 +1453,13 @@ function impDraw(v) {
             ${num('prep_ngn', 'Repairs & prep (₦)')}
           </div>`)}
 
+        ${optional('use_maxbid', 'Maximum bid', 'Work backwards from what the car sells for to the most you can pay.', `
+          <div class="form-grid">
+            ${num('sell_ngn', 'Sells for in Nigeria (₦)')}
+            ${num('profit_ngn', 'Profit you want (₦)')}
+          </div>
+          <p class="cell-sub" style="margin:0">Uses every other cost on this page. The answer is the highest <b>Buying</b> figure that still leaves your profit — if your Buying figure includes Copart's fees, so does this one.</p>`)}
+
         ${optional('use_markup', 'Selling price', 'Add your markup to get a suggested price and profit.', `
           <div class="form-grid">${num('markup_pct', 'Markup (%)')}</div>`)}
       </div>
@@ -1303,6 +1502,22 @@ function impDraw(v) {
               <div><div class="lbl">Profit</div><b style="color:var(--green)">${money(r.profit)}</b></div>` : ''}
             ${v.use_truck_est ? `<div><div class="lbl">Pickup estimate</div><b>${r.pickupDays} days</b></div>` : ''}
           </div>
+          ${v.use_maxbid ? (() => {
+            const mb = impMaxBid(v), buy = +v.buy_usd || 0;
+            if (!mb.sell) return `<div class="imp-maxbid"><div class="lbl">Maximum bid</div><span class="cell-sub">Enter what the car sells for.</span></div>`;
+            if (mb.max <= 0) return `<div class="imp-maxbid bad"><div class="lbl">Maximum bid</div><b>Doesn't work</b>
+              <span class="cell-sub">Costs other than buying already come to ${money(impCalc({ ...v, buy_usd: 0 }).landed)} — more than ${money(mb.sell - mb.want)} left after your profit.</span></div>`;
+            const diff = mb.max - buy;
+            const vs = (name, amt) => {
+              if (!amt) return '';
+              const d = mb.max - amt, profit = mb.sell - impCalc({ ...v, buy_usd: amt }).landed;
+              return `<li class="${d >= 0 ? 'ok' : 'over'}"><span>${name} ${usd(amt)}</span><span>${d >= 0 ? `${usd(d)} under` : `${usd(-d)} over`} · profit ${money(profit)}</span></li>`;
+            };
+            const cmp = vs('Current bid', +v.bid_usd || 0) + vs('Buy It Now', +v.bin_usd || 0);
+            return `<div class="imp-maxbid ${buy && diff < 0 ? 'bad' : 'good'}"><div class="lbl">Maximum bid</div><b>${usd(Math.floor(mb.max))}</b>
+              <span class="cell-sub">${buy ? (diff >= 0 ? `Your ${usd(buy)} is ${usd(diff)} under — profit ${money(mb.sell - r.landed)}.` : `Your ${usd(buy)} is ${usd(-diff)} over — profit only ${money(mb.sell - r.landed)}.`) : `Sell at ${money(mb.sell)}, keep ${money(mb.want)}.`}</span>
+              ${cmp ? `<ul class="imp-vs">${cmp}</ul>` : ''}</div>`;
+          })() : ''}
         </div>
       </div>
 
@@ -1386,11 +1601,40 @@ function impDraw(v) {
   });
   impQuotesWire(v);
 
+  // Copart link → fill vehicle, lot, location, title; borrow the usual costs
+  // from the most recent saved quote for any that are still empty.
+  const linkIn = $('#imp_copart'), linkMsg = $('[data-imp-linkmsg]');
+  linkIn.addEventListener('input', () => {
+    const raw = linkIn.value.trim();
+    if (!raw) return;
+    const c = impParseCopart(raw);
+    if (!c) { linkMsg.innerHTML = `<div class="imp-linkinfo"><span class="pill red">Not a Copart lot link</span><span class="cell-sub">It should look like copart.com/lot/12345678/…</span></div>`; return; }
+    const res = impApplyLink(v, c);
+    impSave(v); impDraw(v);
+    toast(res.filled.length ? `Read lot ${c.lot}. Filled ${res.filled.join(', ')} from "${res.from}" — check them.` : `Read lot ${c.lot}`, 'ok');
+    $('#imp_buy_usd')?.focus();
+  });
+  $('[data-imp-bm]').addEventListener('click', impBookmarkModal);
+  $$('[data-imp-use]').forEach(b => b.addEventListener('click', () => {
+    const val = Math.round(+v[b.dataset.impUse] || 0);
+    if (!val) { toast('Enter an amount first', 'err'); return; }
+    v.buy_usd = val; $('#imp_buy_usd').value = val;
+    impSave(v); render(); toast(`Buying set to $${val.toLocaleString('en-US')}`, 'ok');
+  }));
+  const unlink = $('[data-imp-unlink]');
+  if (unlink) unlink.addEventListener('click', () => {
+    Object.assign(v, { copart_url: '', lot: '', location: '', title_type: '' });
+    impSave(v); impDraw(v);
+  });
+
   $('[data-imp-copy]').addEventListener('click', () => {
     const r = impCalc(v);
     const u = (n) => '$' + Math.round(n).toLocaleString('en-US');
     const lines = [
       v.label || 'Import cost',
+      ...(v.lot ? [`Copart lot ${v.lot}${v.location ? ' · ' + v.location : ''}${v.title_type ? ' · ' + v.title_type : ''}`] : []),
+      ...(+v.bid_usd ? [`Current bid: ${u(+v.bid_usd)}`] : []),
+      ...(+v.bin_usd ? [`Buy It Now: ${u(+v.bin_usd)}`] : []),
       `Buying: ${u(+v.buy_usd || 0)}`,
       `Trucking: ${u(r.truckUsd)}`,
       `Shipping: ${u(+v.ship_usd || 0)}`,
@@ -1400,6 +1644,8 @@ function impDraw(v) {
       ...(r.local ? [`Local costs: ${money(r.local)}`] : []),
       `Total: ${money(r.landed)} (@ ₦${r.fx.toLocaleString('en-NG')}/$)`,
       ...(v.use_markup ? [`Suggested price: ${money(r.price)}`] : []),
+      ...(v.use_maxbid && impMaxBid(v).max > 0 ? [`Maximum bid: ${u(Math.floor(impMaxBid(v).max))} (sell ${money(+v.sell_ngn || 0)}, profit ${money(+v.profit_ngn || 0)})`] : []),
+      ...(v.copart_url ? [v.copart_url] : []),
     ];
     navigator.clipboard?.writeText(lines.join('\n')).then(() => toast('Breakdown copied', 'ok'), () => toast('Copy failed', 'err'));
   });
@@ -1421,7 +1667,7 @@ function impQuotesPanel(v) {
         <thead><tr><th>Vehicle</th><th class="num">Dollar costs</th><th class="num">Clearing</th><th class="num">Landed cost</th><th class="num">Rate</th><th>Saved</th><th></th></tr></thead>
         <tbody>${impQuotes.map(q => `
           <tr class="${q.id === v.quote_id ? 'imp-row-open' : ''}">
-            <td><div class="cell-main">${esc(q.label)}</div>${q.id === v.quote_id ? '<div class="cell-sub">Open now</div>' : ''}</td>
+            <td><div class="cell-main">${esc(q.label)}</div>${q.inputs.lot ? `<div class="cell-sub">Lot ${esc(q.inputs.lot)}${q.inputs.location ? ' · ' + esc(q.inputs.location) : ''}</div>` : ''}${q.id === v.quote_id ? '<div class="cell-sub">Open now</div>' : ''}</td>
             <td class="num">${usd(dollars(q.inputs))}</td>
             <td class="num">${q.inputs.use_customs ? '<span class="cell-sub">estimated</span>' : money(q.inputs.clearing_ngn)}</td>
             <td class="num"><b>${money(q.total_ngn)}</b></td>
