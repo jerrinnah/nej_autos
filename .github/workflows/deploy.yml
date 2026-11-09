@@ -56,8 +56,8 @@ jobs:
       - name: Stamp asset URLs
         run: |
           STAMP=$(date +%s)
-          sed -i "s/?v=[A-Za-z0-9]*/?v=$STAMP/g" index.html portal.html car.html
-          grep -o '?v=[0-9]*' index.html portal.html car.html
+          sed -i "s/?v=[A-Za-z0-9]*/?v=$STAMP/g" index.html portal.html car.html admin/index.html
+          grep -o '?v=[0-9]*' index.html portal.html car.html admin/index.html
 
       - name: Deploy via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
