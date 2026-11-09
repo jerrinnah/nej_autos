@@ -20,6 +20,6 @@ deployment:
     # rather than a caching problem. Restamping ?v= changes the URL, so edges
     # and browsers fetch the new file without anyone purging anything.
     - export STAMP=$(/bin/date +%s)
-    - /bin/sed -i "s/?v=[A-Za-z0-9]*/?v=$STAMP/g" $DEPLOYPATH/index.html $DEPLOYPATH/portal.html $DEPLOYPATH/car.html || true
+    - /bin/sed -i "s/?v=[A-Za-z0-9]*/?v=$STAMP/g" $DEPLOYPATH/index.html $DEPLOYPATH/portal.html $DEPLOYPATH/car.html $DEPLOYPATH/admin/index.html || true
     # public_html must stay traversable by the web server (0755, never 0700).
     - /bin/chmod 755 $DEPLOYPATH
