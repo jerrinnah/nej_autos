@@ -182,7 +182,8 @@ const NAV = [
   { key: 'payouts',     label: 'Payouts',     ic: '💸' },
   { key: 'shares',      label: 'Shares',      ic: '🔗' },
   { key: 'leaderboard', label: 'Top sharers', ic: '🏆' },
-  { key: 'settings',    label: 'Settings',    ic: '⚙️' },
+  { key: 'import',      label: 'Import calculator', ic: '🧮' },
+  { key: 'settings',   label: 'Settings',    ic: '⚙️' },
 ];
 
 async function showApp() {
@@ -291,6 +292,7 @@ async function navigate(key) {
     if (key === 'leaderboard') await viewLeaderboard();
     if (key === 'accounts')  await viewAccounts();
     if (key === 'withdrawals') await viewWithdrawals();
+    if (key === 'import')    await viewImport();
     if (key === 'settings')  await viewSettings();
   } catch (e) {
     if (e.status === 401) { showLogin('Your session expired. Please sign in again.'); return; }
@@ -1078,6 +1080,391 @@ async function viewWithdrawals() {
 }
 
 /* =========================================================================
+   Import calculator — what it costs to land a car in Nigeria.
+   The core is the six figures every deal is costed on (buying, trucking,
+   shipping, bank wire, commission in USD + clearing in ₦). Everything else
+   is an optional section, off by default, switched on per quote.
+   The ₦/$ rate comes from Settings (usd_ngn_rate). Quotes are saved to the
+   database (api/quotes.php); the unsaved draft is also kept per device in
+   localStorage so a refresh doesn't lose it (a convenience only).
+   ========================================================================= */
+const IMP_KEY = 'nej_admin_import_calc_v3';
+const IMP_FX_DEFAULT = 1650;                       // ₦ per $1 if Settings can't be read
+let impFx = IMP_FX_DEFAULT;      // rate in use on screen
+let impFxSaved = IMP_FX_DEFAULT; // rate stored in Settings
+let impQuotes = [], impQuotesErr = null;
+
+/* Optional trucking estimator — fixed transport pricing. */
+const IMP_VEHICLES = {
+  sedan:  { label: 'Sedan',            mult: 1.15 },
+  suv:    { label: 'SUV',              mult: 1.4 },
+  pickup: { label: 'Pickup / Truck',   mult: 1.7 },
+  luxury: { label: 'Luxury / Exotic',  mult: 2.3 },
+};
+const IMP_SHIPPING = {
+  open:      { label: 'Open',               mult: 1.0 },
+  enclosed:  { label: 'Enclosed',           mult: 1.35 },
+  expedited: { label: 'Expedited enclosed', mult: 1.65 },
+};
+const IMP_DOOR_FEE = 175, IMP_PROTECT_FEE = 175, IMP_LUXURY_FEE = 250;
+const IMP_PICKUP_MIN_DAYS = 3, IMP_MILES_PER_DAY = 450;
+
+const IMP_RATES = { ins_pct: 1.5, duty_pct: 35, levy_pct: 35, surcharge_pct: 7, etls_pct: 0.5, ciss_pct: 1, vat_pct: 7.5 };
+const IMP_DEFAULTS = {
+  quote_id: null, label: '',
+  buy_usd: 0, truck_usd: 0, ship_usd: 0, wire_usd: 0, comm_usd: 0, clearing_ngn: 0,
+  // optional sections — all off by default
+  use_truck_est: false, vtype: 'sedan', ship: 'open', miles: 800, base_rate: 0.6, door: false, protect: false,
+  use_customs: false, ...IMP_RATES, agent_ngn: 350000,
+  use_local: false, port_ngn: 0, transport_ngn: 0, reg_ngn: 0, prep_ngn: 0,
+  use_markup: false, markup_pct: 12,
+};
+
+function impLoad() {
+  try { return { ...IMP_DEFAULTS, ...(JSON.parse(localStorage.getItem(IMP_KEY)) || {}) }; }
+  catch { return { ...IMP_DEFAULTS }; }
+}
+function impSave(v) { try { localStorage.setItem(IMP_KEY, JSON.stringify(v)); } catch { /* private mode */ } }
+
+function impCalc(v) {
+  const n = (k) => Math.max(0, +v[k] || 0);
+  const fx = impFx;
+
+  // trucking — typed in, or estimated
+  const veh = IMP_VEHICLES[v.vtype] || IMP_VEHICLES.sedan;
+  const ship = IMP_SHIPPING[v.ship] || IMP_SHIPPING.open;
+  const haulUsd = n('miles') * n('base_rate') * veh.mult * ship.mult;
+  const extrasUsd = (v.door ? IMP_DOOR_FEE : 0) + (v.protect ? IMP_PROTECT_FEE : 0) + (v.vtype === 'luxury' ? IMP_LUXURY_FEE : 0);
+  const truckEstUsd = haulUsd + extrasUsd;
+  const pickupDays = IMP_PICKUP_MIN_DAYS + Math.floor(n('miles') / IMP_MILES_PER_DAY) + (v.ship === 'expedited' ? 1 : 0);
+  const truckUsd = v.use_truck_est ? truckEstUsd : n('truck_usd');
+
+  const usdTotal = n('buy_usd') + truckUsd + n('ship_usd') + n('wire_usd') + n('comm_usd');
+  const usdNgn = usdTotal * fx;
+
+  // clearing — lump sum, or estimated from customs rates
+  const fob = (n('buy_usd') + truckUsd) * fx;
+  const cif = (n('buy_usd') + truckUsd + n('ship_usd')) * (1 + n('ins_pct') / 100) * fx;
+  const duty = cif * n('duty_pct') / 100, levy = cif * n('levy_pct') / 100;
+  const surcharge = duty * n('surcharge_pct') / 100, etls = cif * n('etls_pct') / 100, ciss = fob * n('ciss_pct') / 100;
+  const vat = (cif + duty + levy + surcharge + etls + ciss) * n('vat_pct') / 100;
+  const customs = duty + levy + surcharge + etls + ciss + vat;
+  const clearing = v.use_customs ? customs + n('agent_ngn') : n('clearing_ngn');
+
+  const local = v.use_local ? n('port_ngn') + n('transport_ngn') + n('reg_ngn') + n('prep_ngn') : 0;
+  const landed = usdNgn + clearing + local;
+  const price = v.use_markup ? landed * (1 + n('markup_pct') / 100) : 0;
+  return { fx, veh, ship, haulUsd, extrasUsd, truckEstUsd, truckUsd, pickupDays, usdTotal, usdNgn,
+    cif, duty, levy, surcharge, etls, ciss, vat, customs, clearing, local, landed, price, profit: price - landed };
+}
+
+async function viewImport() {
+  const [s, q] = await Promise.all([
+    api('settings.php').catch(() => null),
+    api('quotes.php').catch((e) => { if (e.status === 401) throw e; return { error: e }; }),
+  ]);
+  impFx = impFxSaved = (s && +s.settings.usd_ngn_rate) || IMP_FX_DEFAULT;
+  impQuotes = q.quotes || [];
+  impQuotesErr = q.error || null;
+  impDraw(impLoad());
+}
+
+function impDraw(v) {
+  const open = v.quote_id && impQuotes.find(x => x.id === v.quote_id);
+  if (v.quote_id && !open) v.quote_id = null;      // deleted elsewhere — treat as a new draft
+  setTopbar('Import calculator', 'Cost of landing a car in Nigeria — dollar costs plus clearing.',
+    `<button class="btn btn-ghost btn-sm" data-imp-new>New</button>
+     <button class="btn btn-ghost btn-sm" data-imp-copy>Copy</button>
+     <button class="btn btn-primary btn-sm" data-imp-save ${impQuotesErr ? 'disabled' : ''}>${v.quote_id ? 'Update quote' : 'Save quote'}</button>`);
+
+  const num = (key, label, opts = {}) => `
+    <div class="field${opts.full ? ' full' : ''}"><label for="imp_${key}">${label}</label>
+      <input class="input" id="imp_${key}" data-imp="${key}" type="number" inputmode="decimal" min="0"
+        step="${opts.step || 'any'}" value="${attr(v[key])}" ${opts.disabled ? 'disabled' : ''}></div>`;
+  const optional = (key, title, hint, body) => `
+    <div class="panel imp-opt ${v[key] ? 'on' : ''}">
+      <label class="panel-head imp-opt-head">
+        <input type="checkbox" data-imp-toggle="${key}" ${v[key] ? 'checked' : ''}>
+        <div><h3>${title}</h3><div class="cell-sub">${hint}</div></div>
+        <div class="spacer"></div><span class="pill ${v[key] ? 'amber' : 'grey'}">${v[key] ? 'On' : 'Optional'}</span>
+      </label>
+      ${v[key] ? `<div class="panel-body">${body}</div>` : ''}
+    </div>`;
+
+  $('#view').innerHTML = `
+    <div class="imp-fxbar">
+      <label for="imp_fx">Exchange rate</label>
+      <div class="imp-fxin"><span>₦</span><input class="input" id="imp_fx" type="number" inputmode="decimal" min="1" step="1" value="${impFx}"><span>per $1</span></div>
+      <button class="btn btn-primary btn-sm" data-imp-fxsave ${impFx === impFxSaved ? 'hidden' : ''}>Save rate</button>
+      <span class="cell-sub" data-imp-fxhint>${impFx === impFxSaved ? 'Saved — used for every new quote.' : `Not saved yet · saved rate is ₦${impFxSaved.toLocaleString('en-NG')}`}</span>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Import costs</h3><div class="spacer"></div>
+            ${open ? `<span class="pill blue">Editing saved quote</span>` : `<span class="pill grey">New draft</span>`}
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field full"><label for="imp_label">Vehicle</label>
+                <input class="input" id="imp_label" data-imp="label" placeholder="e.g. 2014 Camry" value="${attr(v.label)}"></div>
+              ${num('buy_usd', 'Buying ($)')}
+              ${num('truck_usd', v.use_truck_est ? 'Trucking ($) · estimated below' : 'Trucking ($)', { disabled: v.use_truck_est })}
+              ${num('ship_usd', 'Shipping ($)')}
+              ${num('wire_usd', 'Bank wire charges ($)')}
+              ${num('comm_usd', 'Commission ($)')}
+              ${num('clearing_ngn', v.use_customs ? 'Clearing (₦) · estimated below' : 'Clearing (₦)', { disabled: v.use_customs })}
+            </div>
+            <p class="cell-sub" style="margin:0">Dollar costs convert at the exchange rate above. Clearing is the all-in naira figure from your agent.</p>
+            ${open && open.fx && open.fx !== impFx ? `<p class="cell-sub imp-fxnote">Saved at ₦${open.fx.toLocaleString('en-NG')}/$ (${money(open.total_ngn)} then). Figures here use today's rate.</p>` : ''}
+          </div>
+        </div>
+
+        <h4 class="imp-opt-title">Optional</h4>
+
+        ${optional('use_truck_est', 'Estimate trucking', 'Work out trucking from distance and vehicle type instead of typing it.', `
+          <div class="form-grid">
+            <div class="field"><label for="imp_vtype">Vehicle type</label>
+              <select class="input" id="imp_vtype" data-imp="vtype">
+                ${Object.entries(IMP_VEHICLES).map(([k, o]) => `<option value="${k}" ${v.vtype === k ? 'selected' : ''}>${o.label} · ×${o.mult}</option>`).join('')}
+              </select></div>
+            <div class="field"><label for="imp_ship">Shipping</label>
+              <select class="input" id="imp_ship" data-imp="ship">
+                ${Object.entries(IMP_SHIPPING).map(([k, o]) => `<option value="${k}" ${v.ship === k ? 'selected' : ''}>${o.label} · ×${o.mult}</option>`).join('')}
+              </select></div>
+            ${num('miles', 'Distance to port (miles)', { step: 1 })}
+            ${num('base_rate', 'Base rate ($ per mile)')}
+            <label class="imp-check"><input type="checkbox" data-imp="door" ${v.door ? 'checked' : ''}> Door-to-door <span>+$${IMP_DOOR_FEE}</span></label>
+            <label class="imp-check"><input type="checkbox" data-imp="protect" ${v.protect ? 'checked' : ''}> Full protection coverage <span>+$${IMP_PROTECT_FEE}</span></label>
+          </div>
+          <p class="cell-sub" style="margin:0">Miles × base rate × vehicle × shipping multiplier, plus extras. Luxury / Exotic adds $${IMP_LUXURY_FEE}. Pickup takes at least ${IMP_PICKUP_MIN_DAYS} days, about 1 more per ${IMP_MILES_PER_DAY} miles, +1 for expedited.</p>`)}
+
+        ${optional('use_customs', 'Estimate clearing from customs rates', 'Break clearing into duty, levy and VAT instead of using the agent\'s lump sum.', `
+          <div class="form-grid">
+            ${num('duty_pct', 'Import duty (% of CIF)')}
+            ${num('levy_pct', 'Levy (% of CIF)')}
+            ${num('surcharge_pct', 'Surcharge (% of duty)')}
+            ${num('etls_pct', 'ETLS (% of CIF)')}
+            ${num('ciss_pct', 'CISS (% of FOB)')}
+            ${num('vat_pct', 'VAT (% of CIF + duties)')}
+            ${num('ins_pct', 'Insurance (% of CIF)')}
+            ${num('agent_ngn', 'Agent & port fees (₦)')}
+          </div>
+          <p class="cell-sub" style="margin:0">CIF = buying + trucking + shipping + insurance. Check the rates against your agent's figures — they change with fiscal policy.</p>`)}
+
+        ${optional('use_local', 'Extra local costs', 'Anything after clearing: delivery, papers, repairs.', `
+          <div class="form-grid">
+            ${num('port_ngn', 'Extra port / terminal (₦)')}
+            ${num('transport_ngn', 'Transport from port (₦)')}
+            ${num('reg_ngn', 'Registration & plates (₦)')}
+            ${num('prep_ngn', 'Repairs & prep (₦)')}
+          </div>`)}
+
+        ${optional('use_markup', 'Selling price', 'Add your markup to get a suggested price and profit.', `
+          <div class="form-grid">${num('markup_pct', 'Markup (%)')}</div>`)}
+      </div>
+
+      <div class="imp-out" id="impOut"></div>
+    </div>
+    ${impQuotesPanel(v)}`;
+
+  const usd = (n) => '$' + (Math.round(n * 100) / 100).toLocaleString('en-US');
+  const render = () => {
+    const r = impCalc(v);
+    const row = (k, val, sub = '') => `<tr><td>${k}${sub ? `<div class="cell-sub">${sub}</div>` : ''}</td><td class="num">${money(val)}</td></tr>`;
+    const total = (k, val, sub = '') => `<tr class="imp-total"><td>${k}${sub ? `<div class="cell-sub">${sub}</div>` : ''}</td><td class="num">${money(val)}</td></tr>`;
+    const share = (part) => r.landed ? Math.round(part / r.landed * 100) : 0;
+    const usdRow = (k, amt, sub) => row(k, amt * r.fx, sub ? `${usd(amt)} · ${sub}` : usd(amt));
+    const d = $('#imp_truck_usd'); if (d && v.use_truck_est) d.value = Math.round(r.truckUsd);
+    const c = $('#imp_clearing_ngn'); if (c && v.use_customs) c.value = Math.round(r.clearing);
+
+    $('#impOut').innerHTML = `
+      <div class="panel">
+        <div class="panel-head"><h3>${esc(v.label || 'Landed cost')}</h3></div>
+        <div class="panel-body imp-hero">
+          <div class="lbl">Total landed cost</div>
+          <div class="imp-big">${money(r.landed)}</div>
+          <div class="imp-split" title="Dollar costs · Clearing${r.local ? ' · Local' : ''}">
+            <span style="width:${share(r.usdNgn)}%;background:var(--blue)"></span>
+            <span style="width:${share(r.clearing)}%;background:var(--accent)"></span>
+            ${r.local ? `<span style="width:${share(r.local)}%;background:var(--green)"></span>` : ''}
+          </div>
+          <div class="imp-legend">
+            <span><i style="background:var(--blue)"></i>Dollar costs ${share(r.usdNgn)}%</span>
+            <span><i style="background:var(--accent)"></i>Clearing ${share(r.clearing)}%</span>
+            ${r.local ? `<span><i style="background:var(--green)"></i>Local ${share(r.local)}%</span>` : ''}
+          </div>
+          <div class="imp-price">
+            <div><div class="lbl">Dollar costs</div><b>${usd(r.usdTotal)}</b></div>
+            <div><div class="lbl">Clearing</div><b>${money(r.clearing)}</b></div>
+            ${v.use_markup ? `
+              <div><div class="lbl">Suggested price</div><b>${money(r.price)}</b></div>
+              <div><div class="lbl">Profit</div><b style="color:var(--green)">${money(r.profit)}</b></div>` : ''}
+            ${v.use_truck_est ? `<div><div class="lbl">Pickup estimate</div><b>${r.pickupDays} days</b></div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Breakdown</h3><div class="spacer"></div><span class="cell-sub">@ ₦${r.fx.toLocaleString('en-NG')}/$</span></div>
+        <div class="tbl-wrap"><table class="tbl imp-tbl"><tbody>
+          ${usdRow('Buying', +v.buy_usd || 0)}
+          ${usdRow('Trucking', r.truckUsd, v.use_truck_est ? `est. ${r.veh.label}, ${r.ship.label}` : '')}
+          ${usdRow('Shipping', +v.ship_usd || 0)}
+          ${usdRow('Bank wire charges', +v.wire_usd || 0)}
+          ${usdRow('Commission', +v.comm_usd || 0)}
+          ${total('Dollar costs', r.usdNgn, usd(r.usdTotal))}
+          ${v.use_customs ? `
+            ${row('Import duty', r.duty, `${+v.duty_pct || 0}% of CIF`)}
+            ${row('Levy', r.levy, `${+v.levy_pct || 0}% of CIF`)}
+            ${row('Surcharge', r.surcharge, `${+v.surcharge_pct || 0}% of duty`)}
+            ${row('ETLS', r.etls, `${+v.etls_pct || 0}% of CIF`)}
+            ${row('CISS', r.ciss, `${+v.ciss_pct || 0}% of FOB`)}
+            ${row('VAT', r.vat, `${+v.vat_pct || 0}%`)}
+            ${row('Agent & port fees', +v.agent_ngn || 0)}
+            ${total('Clearing (estimated)', r.clearing)}` : total('Clearing', r.clearing)}
+          ${v.use_local ? `
+            ${row('Extra port / terminal', +v.port_ngn || 0)}
+            ${row('Transport from port', +v.transport_ngn || 0)}
+            ${row('Registration & plates', +v.reg_ngn || 0)}
+            ${row('Repairs & prep', +v.prep_ngn || 0)}
+            ${total('Local costs', r.local)}` : ''}
+          <tr class="imp-grand"><td>Landed cost</td><td class="num">${money(r.landed)}</td></tr>
+          ${v.use_markup ? `<tr><td>Suggested price<div class="cell-sub">+${+v.markup_pct || 0}% markup</div></td><td class="num">${money(r.price)}</td></tr>` : ''}
+        </tbody></table></div>
+      </div>`;
+  };
+  render();
+
+  $$('[data-imp]').forEach(el => el.addEventListener('input', () => {
+    v[el.dataset.imp] = el.type === 'checkbox' ? el.checked : el.type === 'number' ? el.value : el.value.slice(0, 80);
+    impSave(v); render();
+  }));
+  // switching a section on/off changes the form itself, so redraw the whole view
+  $$('[data-imp-toggle]').forEach(el => el.addEventListener('change', () => {
+    v[el.dataset.impToggle] = el.checked;
+    impSave(v); impDraw(v);
+  }));
+
+  // Exchange rate: recalculates as you type; "Save rate" stores it in Settings.
+  const fxIn = $('#imp_fx'), fxSave = $('[data-imp-fxsave]'), fxHint = $('[data-imp-fxhint]');
+  const fxState = () => {
+    const dirty = impFx !== impFxSaved;
+    fxSave.hidden = !dirty;
+    fxHint.textContent = dirty ? `Not saved yet · saved rate is ₦${impFxSaved.toLocaleString('en-NG')}` : 'Saved — used for every new quote.';
+  };
+  fxIn.addEventListener('input', () => {
+    const n = Math.round(+fxIn.value);
+    if (n >= 1) { impFx = n; render(); fxState(); }
+  });
+  const saveFx = async () => {
+    if (impFx === impFxSaved) return;
+    fxSave.disabled = true;
+    try {
+      await api('settings.php', { method: 'POST', body: { usd_ngn_rate: impFx } });
+      impFxSaved = impFx; toast('Exchange rate saved', 'ok');
+    } catch (e) { toast(e.message, 'err'); }
+    fxSave.disabled = false; fxState();
+  };
+  fxSave.addEventListener('click', saveFx);
+  fxIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveFx(); });
+  $('[data-imp-new]').addEventListener('click', () => {
+    const fresh = { ...IMP_DEFAULTS }; impSave(fresh); impDraw(fresh);
+  });
+  $('[data-imp-save]').addEventListener('click', async (e) => {
+    const btn = e.currentTarget; btn.disabled = true;
+    const { quote_id, ...inputs } = v;
+    const body = { label: v.label || 'Untitled quote', inputs, total_ngn: Math.round(impCalc(v).landed), fx: impFx };
+    try {
+      const r = await api('quotes.php' + (quote_id ? `?id=${quote_id}` : ''), { method: 'POST', body });
+      v.quote_id = r.id; impSave(v);
+      impQuotes = (await api('quotes.php')).quotes;
+      toast(quote_id ? 'Quote updated' : 'Quote saved', 'ok');
+      impDraw(v);
+    } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
+  });
+  impQuotesWire(v);
+
+  $('[data-imp-copy]').addEventListener('click', () => {
+    const r = impCalc(v);
+    const u = (n) => '$' + Math.round(n).toLocaleString('en-US');
+    const lines = [
+      v.label || 'Import cost',
+      `Buying: ${u(+v.buy_usd || 0)}`,
+      `Trucking: ${u(r.truckUsd)}`,
+      `Shipping: ${u(+v.ship_usd || 0)}`,
+      `Bank wire charges: ${u(+v.wire_usd || 0)}`,
+      `Commission: ${u(+v.comm_usd || 0)}`,
+      `Clearing: ${money(r.clearing)}`,
+      ...(r.local ? [`Local costs: ${money(r.local)}`] : []),
+      `Total: ${money(r.landed)} (@ ₦${r.fx.toLocaleString('en-NG')}/$)`,
+      ...(v.use_markup ? [`Suggested price: ${money(r.price)}`] : []),
+    ];
+    navigator.clipboard?.writeText(lines.join('\n')).then(() => toast('Breakdown copied', 'ok'), () => toast('Copy failed', 'err'));
+  });
+}
+
+/* Saved quotes list, under the calculator. */
+function impQuotesPanel(v) {
+  if (impQuotesErr) {
+    return `<div class="panel"><div class="panel-head"><h3>Saved quotes</h3></div>
+      <div class="empty" style="padding:1.5rem"><div class="em">🧩</div>The quotes table isn't set up yet.<br>
+        <button class="btn btn-primary btn-sm" style="margin-top:1rem" data-imp-migrate>Set up now</button></div></div>`;
+  }
+  const usd = (n) => '$' + Math.round(n).toLocaleString('en-US');
+  const dollars = (i) => ['buy_usd', 'truck_usd', 'ship_usd', 'wire_usd', 'comm_usd'].reduce((t, k) => t + (+i[k] || 0), 0);
+  return `
+    <div class="panel">
+      <div class="panel-head"><h3>Saved quotes</h3><div class="spacer"></div><span class="cell-sub">${impQuotes.length} saved</span></div>
+      ${impQuotes.length ? `<div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>Vehicle</th><th class="num">Dollar costs</th><th class="num">Clearing</th><th class="num">Landed cost</th><th class="num">Rate</th><th>Saved</th><th></th></tr></thead>
+        <tbody>${impQuotes.map(q => `
+          <tr class="${q.id === v.quote_id ? 'imp-row-open' : ''}">
+            <td><div class="cell-main">${esc(q.label)}</div>${q.id === v.quote_id ? '<div class="cell-sub">Open now</div>' : ''}</td>
+            <td class="num">${usd(dollars(q.inputs))}</td>
+            <td class="num">${q.inputs.use_customs ? '<span class="cell-sub">estimated</span>' : money(q.inputs.clearing_ngn)}</td>
+            <td class="num"><b>${money(q.total_ngn)}</b></td>
+            <td class="num">₦${(+q.fx).toLocaleString('en-NG')}</td>
+            <td><span class="cell-sub">${esc(timeAgo(q.updated_at))}</span></td>
+            <td class="imp-acts">
+              <button class="btn btn-ghost btn-sm" data-q-open="${q.id}">Open</button>
+              <button class="btn btn-ghost btn-sm" data-q-dup="${q.id}">Duplicate</button>
+              <button class="btn btn-danger btn-sm" data-q-del="${q.id}">Delete</button>
+            </td>
+          </tr>`).join('')}</tbody></table></div>`
+      : `<div class="empty" style="padding:1.5rem"><div class="em">🧮</div>No saved quotes yet. Fill in a car above and press <b>Save quote</b>.</div>`}
+    </div>`;
+}
+
+function impQuotesWire(v) {
+  const find = (id) => impQuotes.find(q => q.id === +id);
+  const load = (q, asCopy) => {
+    const next = { ...IMP_DEFAULTS, ...q.inputs, label: asCopy ? q.label + ' (copy)' : q.label, quote_id: asCopy ? null : q.id };
+    impSave(next); impDraw(next); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  $$('[data-q-open]').forEach(b => b.addEventListener('click', () => load(find(b.dataset.qOpen), false)));
+  $$('[data-q-dup]').forEach(b => b.addEventListener('click', () => {
+    load(find(b.dataset.qDup), true); toast('Copied — save it to keep it', 'ok');
+  }));
+  $$('[data-q-del]').forEach(b => b.addEventListener('click', async () => {
+    const q = find(b.dataset.qDel);
+    if (!confirm(`Delete the quote "${q ? q.label : ''}"? This cannot be undone.`)) return;
+    try {
+      await api(`quotes.php?id=${q.id}&_delete=1`, { method: 'POST' });
+      impQuotes = impQuotes.filter(x => x.id !== q.id);
+      if (v.quote_id === q.id) { v.quote_id = null; impSave(v); }
+      toast('Quote deleted', 'ok'); impDraw(v);
+    } catch (e) { toast(e.message, 'err'); }
+  }));
+  const mig = $('[data-imp-migrate]');
+  if (mig) mig.addEventListener('click', async () => {
+    try { await api('migrate.php'); toast('Quotes table ready', 'ok'); navigate('import'); }
+    catch (e) { toast(e.message, 'err'); }
+  });
+}
+
+/* =========================================================================
    Settings (economics)
    ========================================================================= */
 async function viewSettings() {
@@ -1094,6 +1481,16 @@ async function viewSettings() {
   const s = r.settings;
   setTopbar('Settings', 'Commission rate, points and payout rules.');
   $('#view').innerHTML = `
+    <div class="panel" style="max-width:640px">
+      <div class="panel-head"><h3>Exchange rate</h3></div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="field"><label for="set_fx">Naira per $1</label><input class="input" id="set_fx" type="number" min="1" step="1" value="${s.usd_ngn_rate}"></div>
+        </div>
+        <p class="cell-sub" style="margin-top:0">The <b>Import calculator</b> converts buying, trucking, shipping, wire charges and commission at this rate. Saved quotes keep the rate they were made at.</p>
+        <button class="btn btn-primary" id="saveFx">Save rate</button>
+      </div>
+    </div>
     <div class="panel" style="max-width:640px">
       <div class="panel-head"><h3>Economics</h3></div>
       <div class="panel-body">
@@ -1175,6 +1572,12 @@ async function viewSettings() {
       min_offer_pct: +$('#set_minoffer').value,
       min_withdrawal_ngn: +$('#set_min').value } });
     toast('Settings saved', 'ok');
+  });
+  $('#saveFx').addEventListener('click', async () => {
+    const fx = Math.round(+$('#set_fx').value);
+    if (!(fx >= 1)) { toast('Enter a rate of at least ₦1', 'err'); return; }
+    try { await api('settings.php', { method: 'POST', body: { usd_ngn_rate: fx } }); toast('Exchange rate saved', 'ok'); }
+    catch (e) { toast(e.message, 'err'); }
   });
   $('#savePw').addEventListener('click', async () => {
     const cur = $('#pw_cur').value, nw = $('#pw_new').value, conf = $('#pw_conf').value;

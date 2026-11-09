@@ -67,12 +67,27 @@ try {
     $ins->execute([':k' => 'leaderboard_public', ':v' => '1']);
     $ins->execute([':k' => 'first_payout_same_day', ':v' => '1']);
     $ins->execute([':k' => 'min_offer_pct', ':v' => '85']);
+    $ins->execute([':k' => 'usd_ngn_rate', ':v' => '1650']);
+
+    // Seed the Import calculator with three real costings, once, on an empty table.
+    if ((int)db()->query('SELECT COUNT(*) FROM import_quotes')->fetchColumn() === 0) {
+        $seed = db()->prepare('INSERT INTO import_quotes (label, inputs, total_ngn, fx) VALUES (:l, :i, :t, 1650)');
+        foreach ([
+            ['Venza',      5000, 750, 1600, 80,  300, 3200000],
+            ['2014 Camry', 3800, 750, 1600, 60,  250, 2700000],
+            ['Highlander', 9500, 750, 1600, 120, 400, 3500000],
+        ] as [$label, $buy, $truck, $ship, $wire, $comm, $clearing]) {
+            $seed->execute([':l' => $label, ':t' => ($buy + $truck + $ship + $wire + $comm) * 1650 + $clearing,
+                ':i' => json_encode(['label' => $label, 'buy_usd' => $buy, 'truck_usd' => $truck, 'ship_usd' => $ship,
+                    'wire_usd' => $wire, 'comm_usd' => $comm, 'clearing_ngn' => $clearing])]);
+        }
+    }
 } catch (Throwable $e) {
     json_err('Share-tracking migration failed: ' . $e->getMessage(), 500);
 }
 
 $tables = ['users', 'tracked_links', 'link_clicks', 'ledger', 'withdrawals', 'settings', 'shares',
-           'site_content', 'slides'];
+           'site_content', 'slides', 'import_quotes'];
 $report = [];
 foreach ($tables as $t) {
     $report[$t] = (int)db()->query("SELECT COUNT(*) FROM `$t`")->fetchColumn();

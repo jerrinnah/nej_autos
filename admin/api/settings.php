@@ -31,6 +31,7 @@ $ALLOWED = [
     'leaderboard_public'        => [0, 1],
     'first_payout_same_day'     => [0, 1],
     'hero_autoplay_ms'          => [0, 60000],
+    'usd_ngn_rate'              => [1, 100000],
 ];
 
 // Fallbacks for a key the settings table doesn't hold yet (pre-migration), so
@@ -46,7 +47,7 @@ $DEFAULTS = [
     'leaderboard_winners' => '5',        'leaderboard_split_weighted' => '1',
     'leaderboard_min_clicks' => '1',     'leaderboard_public' => '1',
     'first_payout_same_day' => '1',      'hero_autoplay_ms' => '6000',
-    'min_offer_pct' => '85',
+    'min_offer_pct' => '85',             'usd_ngn_rate' => '1650',
 ];
 
 if (method() === 'GET') {

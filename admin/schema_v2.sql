@@ -179,3 +179,23 @@ CREATE TABLE IF NOT EXISTS `slides` (
 -- Slider behaviour (admin-editable on the Website screen).
 INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
   ('hero_autoplay_ms', '6000');             -- 0 = no autoplay
+
+-- --------------------------------------------------------- import quotes ----
+-- Saved costings from the Import calculator. `inputs` is the calculator's form
+-- as JSON; `total_ngn` and `fx` are what it came to when saved, so an old quote
+-- still reads correctly after the exchange rate moves.
+CREATE TABLE IF NOT EXISTS `import_quotes` (
+  `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `label`      VARCHAR(120) NOT NULL DEFAULT '',
+  `inputs`     TEXT         NOT NULL,
+  `total_ngn`  BIGINT       NOT NULL DEFAULT 0,
+  `fx`         INT UNSIGNED NOT NULL DEFAULT 0,      -- ₦ per $1 used for this quote
+  `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_quotes_updated` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Exchange rate the Import calculator converts dollar costs at.
+INSERT IGNORE INTO `settings` (`k`, `v`) VALUES
+  ('usd_ngn_rate', '1650');                 -- ₦ per $1
